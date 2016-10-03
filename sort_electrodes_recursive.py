@@ -24,7 +24,13 @@ import matplotlib.pyplot as plt
 #trial data
 experiment = 'data/032016_1104amstart/'
 enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
-mcd_labels = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
+files_in_folder = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
+mcd_labels = []
+for filei in files_in_folder:
+    if filei[0]=='.':
+        pass
+    else:
+        mcd_labels.append(filei)
 
 
 
@@ -153,8 +159,10 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
         if savenpy is not False:
             #plots
             if saveplots is not False:
-                fig2 = full_ele.plot_mean_profile(return_fig=True)
+                fig2, waveforms = full_ele.plot_mean_profile(return_fig=True)
                 fig2.savefig(saveplots+ename+'_spike_profiles.png')
+                np.savetxt(saveplots+ename+
+                                '_waveform.csv', waveforms, delimiter=',')
                 plt.clf()
                 plt.close(fig2)
                 for pc in range(full_ele.num_comp)[1:]:
@@ -166,6 +174,7 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
                     fig3.savefig(saveplots+ename+str(pc)+'pc_heatmap.png')
                     plt.clf()
                     plt.close(fig3)
+
             # numpy arrays
             for i in range(neuron_count):
                 np.save(savenpy+ename+'_cluster'+str(i)+'_profile.npy',
@@ -182,7 +191,7 @@ if __name__=='__main__':
     # Set up the directories for saving the results
     # if the folder exists, this prevents it from being overwritten
     # if you want to overwrite it, just delete it.
-    '''
+    
     if os.path.isdir(experiment+'numpy_neurons_recursive'):
         print ("Numpy neurons already exists in "+experiment+
                 ". Please delete or select a new location.")
@@ -201,12 +210,12 @@ if __name__=='__main__':
         os.mkdir(experiment+'/sorting_results')    
         os.mkdir(experiment+'/sorting_results/csv')
         os.mkdir(experiment+'/sorting_results/plots') 
-    '''
+    
     
     # section for sorting all spikes.
     timer = Electrode.laptimer()
     neuron_count = []
-    for ename in enames[:20]:    
+    for ename in enames:    
         try:
             # LOAD RESAMPLED DATA
             rda = np.load(experiment+'subsampled_test_sets/'+ename+'_rda.npy')
@@ -223,7 +232,7 @@ if __name__=='__main__':
             print "Sorted for "+str(ename)
         except IOError:
             print "No spikes found for channel "+ename[-3:]
-    enamcount = map(list, zip(*[enames_b, neuron_count]))
+
     print ("Time to serially sort all spikes "
                     +str(round(timer(),2))+"s.")
     

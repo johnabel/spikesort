@@ -643,7 +643,9 @@ class Electrode(object):
         colors = 'bgrcmywk'
         fig = plt.figure(figsize=(3.5,2.42))
         ax = plt.subplot()
+        means = []
         for i, key in enumerate(np.sort(self.neurons.keys())):
+            means.append(self.neurons[key].mean(0))
             try:
                 plt.fill_between(range(len(self.neurons[key].mean(0))), 
                                  self.neurons[key].max(0), 
@@ -656,7 +658,7 @@ class Electrode(object):
         plt.legend()
         ax.set_title(self.name)
         if return_fig is True:
-            return fig
+            return fig, np.asarray(means)
 
         
 # ============================================================================

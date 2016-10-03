@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 #trial data
 experiment = 'data/032016_1104amstart/'
 database_path = experiment # put subsamples in this spot
-fraction_subsample = 0.05
+fraction_subsample = 0.9
 
 
 
@@ -38,12 +38,12 @@ if __name__=='__main__':
     # for spike
     enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
     files_in_folder = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
-    mcd_files = []
+    mcd_labels = []
     for filei in files_in_folder:
         if filei[0]=='.':
             pass
         else:
-            mcd_files.append(filei)
+            mcd_labels.append(filei)
     # mcd labels is to -1 so as to remove enames.npy from the list.
     
     # if the folder exists, this prevents it from being overwritten
