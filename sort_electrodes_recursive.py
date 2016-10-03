@@ -267,7 +267,7 @@ if __name__=='__main__':
     for nn in nfiles:
         if nn[-3:]=='npy' and nn[4]=='n':
             times = np.load(result_path+'/'+nn)
-            if len(times) > 5E3:
+            if len(times) > 0:
                 try:
                     np.savetxt(experiment+'/sorting_results/csv/'+nn[:-4]+
                                 '.csv', times, delimiter=',')

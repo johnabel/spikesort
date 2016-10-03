@@ -10,7 +10,7 @@ from __future__ import division
 import numpy  as np
 from numpy import matlib
 import scipy as sp
-from scipy import signal
+from scipy import signal, stats
 from sklearn import decomposition, cluster, mixture
 import neuroshare as ns
 from collections import Counter
@@ -241,14 +241,20 @@ class Electrode(object):
                 # returns 1 if point within ellipsoid
                 if len(point)==2:
                     [cx,cy,a,b] = ellipse_param
-                    [x,y] = point
-                    if (x-cx)**2/a**2 +(y-cy)**2/b**2 <1:
+                    point = np.asarray(point)
+                    centers = np.asarray([cx,cy])
+                    sigma_inv = np.array([[a**-2,0],[0,b**-2]])
+                    mahalanobis_dist2 = (point-centers).T.dot(sigma_inv).dot(point-centers)
+                    if mahalanobis_dist2 < stats.chi2.ppf(0.5,2):
                         return 1
                     else: return 0
                 if len(point)==3:
                     [cx,cy,cz,a,b,c] = ellipse_param
-                    [x,y,z] = point
-                    if (x-cx)**2/a**2 +(y-cy)**2/b**2 + (z-cz)**2/c**2 <1:
+                    centers = np.asarray([cx,cy,cz])
+                    point = np.asarray(point)
+                    sigma_inv = np.array([[a**-2,0,0],[0,b**-2,0],[0,0,c**-2]])
+                    mahalanobis_dist2 = (point-centers).T.dot(sigma_inv).dot(point-centers)
+                    if mahalanobis_dist2 < stats.chi2.ppf(0.5,3):
                         return 1
                     else: return 0
                     
