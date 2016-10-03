@@ -37,7 +37,13 @@ if __name__=='__main__':
 
     # for spike
     enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
-    mcd_labels = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
+    files_in_folder = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
+    mcd_files = []
+    for filei in files_in_folder:
+        if filei[0]=='.':
+            pass
+        else:
+            mcd_files.append(filei)
     # mcd labels is to -1 so as to remove enames.npy from the list.
     
     # if the folder exists, this prevents it from being overwritten

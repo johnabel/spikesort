@@ -121,8 +121,7 @@ print timer()
 
 
 # comparing time to load files from db or from mcd
-mcd_files = np.sort(os.listdir(mcd_locations+'mcd/'))
-filei = mcd_files[0]
+filei = files[0]
 
 print "Loading time from db:  "
 timer = ele.laptimer()
