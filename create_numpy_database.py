@@ -35,7 +35,14 @@ if os.path.isdir(database_path+'/numpy_database'):
 else: os.mkdir(database_path+'/numpy_database')
 
 # load up the files
-files = np.sort(os.listdir(mcd_locations+'/mcd'))
+files_in_folder = np.sort(os.listdir(mcd_locations+'/mcd'))
+files = []
+for filei in files_in_folder:
+    if filei[0]=='.':
+        pass
+    else:
+        files.append(filei)
+        
 # correct for first file with no numbering
 if files[0][-5]=='t':
     os.rename(mcd_locations+'/mcd/'+files[0], 
