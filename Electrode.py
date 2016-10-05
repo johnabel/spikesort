@@ -596,7 +596,7 @@ class Electrode(object):
         principal components which are plotted.
         """
         #plotting utilities
-        colors='grcmywk'
+        colors='bgrcmyw'
         predicted = self.pred
         elim_loc = np.where(self.pred<0)
         pred_loc = np.where(self.pred>=0)
@@ -638,7 +638,7 @@ class Electrode(object):
         """
         if hasattr(self, 'gmm')==False:
             self.sort_spikes()
-        colors = 'bgrcmywk'
+        colors = 'bgrcmyw'
         fig = plt.figure(figsize=(3.5,2.42))
         ax = plt.subplot()
         means = []
