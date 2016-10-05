@@ -161,10 +161,14 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
             if saveplots is not False:
                 fig2, waveforms = full_ele.plot_mean_profile(return_fig=True)
                 fig2.savefig(saveplots+ename+'_spike_profiles.png')
+                plt.clf()
+                plt.close(fig2)
+                fig3 = full_ele.plot_through_time(noise_free_times, return_fig=True)
+                fig3.savefig(saveplots+ename+'_spikes_through_time.png')
                 np.savetxt(saveplots+ename+
                                 '_waveform.csv', waveforms, delimiter=',')
                 plt.clf()
-                plt.close(fig2)
+                plt.close(fig3)
                 for pc in range(full_ele.num_comp)[1:]:
                     fig1 = full_ele.plot_clustering(return_fig=True,pc2=pc)
                     fig1.savefig(saveplots+ename+str(pc)+'pc_clusters.png')

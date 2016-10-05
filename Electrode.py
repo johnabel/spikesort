@@ -194,6 +194,7 @@ class Electrode(object):
         if sort_times is None:
             sort_times = np.copy(self.raw_spike_times)
         
+        
         #set up the PCA
         if pca_param is None:
             pca = self.pca
@@ -609,6 +610,23 @@ class Electrode(object):
                     alpha=0.1, c='k')
         plt.scatter(self.rescale_rtd[pred_loc,pc1], self.rescale_rtd[pred_loc,pc2], marker='.',
                     alpha=0.1, c=clust_color)
+        ax.set_xlabel('PC'+str(pc1+1)); ax.set_ylabel('PC'+str(pc2+1));
+        ax.set_title(self.name)
+        if return_fig is True:
+            return fig
+            
+    def plot_through_time(self, times, pc1=0, pc2=1, return_fig=False):
+        """
+        Plots the clustering results for the electrode. pc1 and pc2 are the 
+        principal components which are plotted.
+        """
+        
+        fig = plt.figure(figsize=(3.5,2.42))
+        ax = plt.subplot()
+        #make_ellipses(self.gmm, ax)
+
+        plt.scatter(self.rescale_rtd[:,pc1], self.rescale_rtd[:,pc2], marker='.',
+                    alpha=0.1, c=times)
         ax.set_xlabel('PC'+str(pc1+1)); ax.set_ylabel('PC'+str(pc2+1));
         ax.set_title(self.name)
         if return_fig is True:
