@@ -596,26 +596,18 @@ class Electrode(object):
         principal components which are plotted.
         """
         #plotting utilities
-        colors='bgrcmywk'
-        def make_ellipses(gmm, ax):
-            for n in range(self.num_clusters):
-                v, w = np.linalg.eigh(gmm._get_covars()[n][:2, :2])
-                u = w[0] / np.linalg.norm(w[0])
-                angle = np.arctan2(u[1], u[0])
-                angle = 180 * angle / np.pi  # convert to degrees
-                v *= 9
-                ell = mpl.patches.Ellipse(gmm.means_[n, :2], v[0], v[1],
-                                     180 + angle, color=colors[n%len(colors)]
-                                          )
-                ell.set_clip_box(ax.bbox)
-                ell.set_alpha(0.5)
-                ax.add_artist(ell)
+        colors='grcmywk'
+        predicted = self.pred
+        elim_loc = np.where(self.pred<0)
+        pred_loc = np.where(self.pred>=0)
         
         fig = plt.figure(figsize=(3.5,2.42))
         ax = plt.subplot()
         #make_ellipses(self.gmm, ax)
-        clust_color = [colors[i%len(colors)] for i in self.pred]
-        plt.scatter(self.rescale_rtd[:,pc1], self.rescale_rtd[:,pc2], marker='.',
+        clust_color = [colors[i%len(colors)] for i in predicted[pred_loc]]
+        plt.scatter(self.rescale_rtd[elim_loc, pc1], self.rescale_rtd[elim_loc,pc2], marker='.',
+                    alpha=0.1, c='k')
+        plt.scatter(self.rescale_rtd[pred_loc,pc1], self.rescale_rtd[pred_loc,pc2], marker='.',
                     alpha=0.1, c=clust_color)
         ax.set_xlabel('PC'+str(pc1+1)); ax.set_ylabel('PC'+str(pc2+1));
         ax.set_title(self.name)
