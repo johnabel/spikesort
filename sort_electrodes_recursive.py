@@ -152,7 +152,12 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
                 for neuron_index in range(neuron_count):
                     firing_times[neuron_index].append(
                             output[neuron_index])
-        spike_time_arrays = [np.hstack(firing_times[i]) for i in range(neuron_count)]
+        spike_time_arrays = []
+        for i in range(neuron_count):
+            if len(firing_times[i])>0:
+                spike_time_arrays.append(np.hstack(firing_times[i]))
+            else:
+                spike_times_arrays.append(np.array([0]))
                                         
                                         
         # saving the numpy arrays, and the plots
