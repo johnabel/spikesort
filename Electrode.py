@@ -96,7 +96,8 @@ class Electrode(object):
 
             
     def fit_gmm(self, sort_data=None, sort_times=None, pca_param=None, 
-                thresh='bics', covar_type='diag', precalc_std=None):
+                thresh='bics', covar_type='diag', precalc_std=None, 
+                bics_thresh=5000):
         """Method for sorting spikes. Follows general idea in "spike sorting"
         article on scholarpedia. This function collects data, performs PCA,
         and clusters the resulting top principal components using a 
@@ -157,7 +158,7 @@ class Electrode(object):
                 bics.append(gmm.bic(fit_data))
                 
                 if thresh=='bics':
-                    if (bics[-1]-bics[-2]) > -5000:
+                    if (bics[-1]-bics[-2]) > -1*bics_thresh:
                         # if the BIC improves by less than 5%, we ignore the 
                         # additional cluster that is found. this is heuristic.
                         gmm_comp = i-1
@@ -302,7 +303,7 @@ class Electrode(object):
         self.reduced_transformed_data = reduced_transformed_data
     
     def recursive_fit_gmm(self, noise_free_data, noise_free_times, pca_param,
-                          return_data='tree'):
+                          return_data='tree', bics_thresh=5000):
         """
         will cluster repeatedly until stable neurons, will then return within
         1SD of center of each. provide the data without noise to start.
@@ -311,8 +312,8 @@ class Electrode(object):
         """
         
         self.fit_gmm(sort_data=noise_free_data, sort_times=noise_free_times,
-                     pca_param = pca_param,
-                         thresh='bics', covar_type='full')
+                     pca_param = pca_param, thresh='bics', covar_type='full',
+                     bics_thresh=bics_thresh)
         self.sort_spikes(sort_data=noise_free_data, 
                              sort_times=noise_free_times, method='em')
         working_neurons = self.neurons

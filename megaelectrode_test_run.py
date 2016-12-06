@@ -22,15 +22,7 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/032016_1104amstart/'
-enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
-files_in_folder = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
-mcd_labels = []
-for filei in files_in_folder:
-    if filei[0]=='.':
-        pass
-    else:
-        mcd_labels.append(filei)
+experiment = 'data/mega_clusters/'
 
 
 
@@ -210,24 +202,8 @@ if __name__=='__main__':
     # if the folder exists, this prevents it from being overwritten
     # if you want to overwrite it, just delete it.
     
-    if os.path.isdir(experiment+'numpy_neurons_recursive'):
-        print ("Numpy neurons already exists in "+experiment+
-                ". Please delete or select a new location.")
-        import sys
-        sys.exit()
-    else: os.mkdir(experiment+'numpy_neurons_recursive')
-    
-    # save all files to csv, save plots
-    result_path = experiment+'numpy_neurons_recursive/'
-    if os.path.isdir(experiment+'/sorting_results'):
-        print ("Sorting results already exists in "+experiment+
-                ". Please delete or select a new location.")
-        import sys
-        sys.exit()
-    else: 
-        os.mkdir(experiment+'/sorting_results')    
-        os.mkdir(experiment+'/sorting_results/csv')
-        os.mkdir(experiment+'/sorting_results/plots') 
+    experiment = 'data/mega_clusters/'
+    enames = ['33','35','75']
     
     
     # section for sorting all spikes.
@@ -242,65 +218,46 @@ if __name__=='__main__':
             full_ele.load_array_data(rda, tda)
             
             # SORT THE SPIKES
-            spks_sorted, nc = sort_electrode(
-               ename, experiment, mcd_labels, 10, full_ele, 
-               savenpy=experiment+'numpy_neurons_recursive/',
-               saveplots=experiment+'sorting_results/plots/')
-               
-            print "Sorted for "+str(ename)
-        except IOError:
-            print "No spikes found for channel "+ename[-3:]
+            full_ele.fit_gmm(thresh='bics')
+            cluster_count = full_ele.num_clusters
+            if cluster_count == 1:
+                # there is only noise
+                print 0
+            
+            else:
+                #deconstruct pca, gmm
+                pca_data_noise = full_ele.pca_parameters
+                gmm_data_noise = full_ele.gmm_parameters
+                precalc_std = full_ele.calc_standard_deviation
+                # sort electrode using expectation maximizatn to categorize ALL spikes
+                full_ele.sort_spikes(method='em', precalc_std = precalc_std)
+                # remove the noise cluster 
+                full_ele.remove_noise_cluster()
+                noise_free_data = np.vstack(full_ele.neurons.values())
+                noise_free_times = np.hstack(full_ele.neuron_spike_times.values())
+                
+                # do a recursive sorting f the remaining spikes
+                pca_tree, gmm_tree, std_tree = full_ele.recursive_fit_gmm(
+                                    noise_free_data, noise_free_times, pca_data_noise)
+                full_ele.recursive_sort_spikes(noise_free_data, noise_free_times, 
+                                      pca_tree, gmm_tree, std_tree, final_method='std')
+                neuron_count = full_ele.num_clusters
+                print "prelim count ="+str(neuron_count)
+                
+                iterate = 0
+                while neuron_count > 7: #tunable
+                    pca_tree, gmm_tree, std_tree = full_ele.recursive_fit_gmm(
+                                        noise_free_data, noise_free_times, 
+                                        pca_data_noise, bics_thresh=5000000)
+                    full_ele.recursive_sort_spikes(noise_free_data, noise_free_times, 
+                                          pca_tree, gmm_tree, std_tree, final_method='std')
+                    neuron_count = full_ele.num_clusters
+                    print "revised count ="+str(neuron_count)
+                    iterate+=1
 
     print ("Time to serially sort all spikes "
                     +str(round(timer(),2))+"s.")
     
-    # define plots
-    def plot_frate(spike_times, window=600):
-        times,frates = Electrode.firing_rates(spike_times, win=window)
-        fig = plt.figure()
-        plt.plot(times/3600, frates,'k.')
-        plt.xlim([0,np.max(times/3600)])
-        plt.xlabel('Time (h)')
-        plt.tight_layout()
-        plt.ylabel('10-min Mean Freq. (Hz)')
-        return fig
-    
-    def plot_isi_hist(spike_times):
-        isi = np.diff(spike_times)
-        isi_millis = 1000*isi
-        fig = plt.figure()
-        ax = plt.subplot()
-        ax.hist(isi_millis, bins=np.linspace(0,1000,101))
-        ax.set_xlabel('ISI (ms)')
-        #ax.set_xscale('log')
-        ax.set_ylabel('Count')
-        plt.tight_layout()
-        return fig
-        
-    
 
-    # process the python neurons
-    result_path = experiment+'numpy_neurons_recursive'
-    nfiles = np.sort(os.listdir(result_path))
-    for nn in nfiles:
-        if nn[-3:]=='npy' and nn[4]=='n':
-            times = np.load(result_path+'/'+nn)
-            if len(times) > 0:
-                try:
-                    np.savetxt(experiment+'/sorting_results/csv/'+nn[:-4]+
-                                '.csv', times, delimiter=',')
-                    #save plots
-                    fig1 = plot_frate(times)
-                    fig1.savefig(experiment+'/sorting_results/plots/'
-                                        +nn[:11]+'_rate.png')
-                    plt.clf()
-                    plt.close(fig1)
-                    fig2 = plot_isi_hist(times)
-                    fig2.savefig(experiment+'/sorting_results/plots/'
-                                        +nn[:11]+'_isihist.png')
-                    plt.clf()
-                    plt.close(fig2)
-                except: print 'failed for'+nn
-            
             
             
