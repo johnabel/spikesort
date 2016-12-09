@@ -22,15 +22,9 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/032016_1104amstart/'
+experiment = 'data/stimulation_included/'
 enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
-files_in_folder = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
-mcd_labels = []
-for filei in files_in_folder:
-    if filei[0]=='.':
-        pass
-    else:
-        mcd_labels.append(filei)
+
 
 
 
@@ -131,14 +125,6 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
                               pca_tree, gmm_tree, std_tree, final_method='std')
         neuron_count = full_ele.num_clusters
         
-        if neuron_count > 7: #tunable
-            pca_tree, gmm_tree, std_tree = full_ele.recursive_fit_gmm(
-                                noise_free_data, noise_free_times, 
-                                pca_data_noise, bics_thresh=10000)
-            full_ele.recursive_sort_spikes(noise_free_data, noise_free_times, 
-                                  pca_tree, gmm_tree, std_tree, final_method='std')
-            neuron_count = full_ele.num_clusters
-        
         # use the discovered sorting (trees) to now sort ALL the data
         # input data for sorting
         chunks = [mcd_labels[x:x+batch_size] for x 
@@ -177,12 +163,6 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
                 fig2.savefig(saveplots+ename+'_spike_profiles.png')
                 plt.clf()
                 plt.close(fig2)
-                fig3 = full_ele.plot_through_time(noise_free_times, return_fig=True)
-                fig3.savefig(saveplots+ename+'_spikes_through_time.png')
-                np.savetxt(saveplots+ename+
-                                '_waveform.csv', waveforms, delimiter=',')
-                plt.clf()
-                plt.close(fig3)
                 for pc in range(full_ele.num_comp)[1:]:
                     fig1 = full_ele.plot_clustering(return_fig=True,pc2=pc)
                     fig1.savefig(saveplots+ename+str(pc)+'pc_clusters.png')
@@ -195,10 +175,14 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
 
             # numpy arrays
             for i in range(neuron_count):
-                np.save(savenpy+ename+'_cluster'+str(i)+'_profile.npy',
-                            full_ele.neurons[str(i)].mean(0))
-                np.save(savenpy+ename+'_neuron'+str(i)+'_times.npy',
+                np.save(savenpy+ename+'_n'+str(i)+'_profiles.npy',
+                            full_ele.neurons[str(i)])
+                np.save(savenpy+ename+'_n'+str(i)+'_times.npy',
                             spike_time_arrays[i])
+                timeshape = np.hstack([np.asarray([spike_time_arrays[i]]).T,
+                                       ])
+                np.savetxt(saveplots+ename+
+                                '_waveform.csv', waveforms, delimiter=',')
                             
         return spike_time_arrays, neuron_count
     
@@ -210,97 +194,112 @@ if __name__=='__main__':
     # if the folder exists, this prevents it from being overwritten
     # if you want to overwrite it, just delete it.
     
-    if os.path.isdir(experiment+'numpy_neurons_recursive'):
+    if os.path.isdir(experiment+'numpy_neurons'):
         print ("Numpy neurons already exists in "+experiment+
                 ". Please delete or select a new location.")
         import sys
         sys.exit()
-    else: os.mkdir(experiment+'numpy_neurons_recursive')
+    else: os.mkdir(experiment+'numpy_neurons')
     
-    # save all files to csv, save plots
-    result_path = experiment+'numpy_neurons_recursive/'
-    if os.path.isdir(experiment+'/sorting_results'):
-        print ("Sorting results already exists in "+experiment+
-                ". Please delete or select a new location.")
-        import sys
-        sys.exit()
-    else: 
-        os.mkdir(experiment+'/sorting_results')    
-        os.mkdir(experiment+'/sorting_results/csv')
-        os.mkdir(experiment+'/sorting_results/plots') 
+        
+    subdirectories = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
     
+    for diridx, directory in enumerate(subdirectories):
+        files_in_folder = np.sort(os.listdir(experiment+'numpy_database/'
+                                    +directory))
+        mcd_labels = []
+        for filei in files_in_folder:
+            if filei[0]=='.':
+                pass
+            else:
+                mcd_labels.append(filei)
+        
+        # save all files to csv, save plots
+        result_path = experiment+'numpy_neurons/'+directory+'/'
+        os.mkdir(result_path)
+        if os.path.isdir(result_path+'/sorting_plots'):
+            print ("Sorting results already exists in "+experiment+
+                    ". Please delete or select a new location.")
+            import sys
+            sys.exit()
+        else: 
+            os.mkdir(result_path+'/sorting_plots') 
+        
+        
+        # section for sorting all spikes.
+        timer = Electrode.laptimer()
+        neuron_count = []
+        subsample_path = experiment+'subsampled_test_sets/'+directory+'/'
+        for ename in enames:    
+            try:
+                # LOAD RESAMPLED DATA
+                rda = np.load(subsample_path+ename+'_rda.npy')
+                tda = np.load(subsample_path+ename+'_tda.npy')
+                full_ele = Electrode.Electrode(ename)# ignore all the names etc
+                full_ele.load_array_data(rda, tda)
+                
+                # SORT THE SPIKES
+                spks_sorted, nc = sort_electrode(
+                   ename, experiment+'numpy_database/'+directory+'/',
+                   mcd_labels, 10, full_ele, 
+                   savenpy=experiment+'numpy_neurons/'+directory+'/',
+                   saveplots=experiment+'numpy_neurons/'+directory+
+                   '/sorting_plots/')
+                   
+                print "Sorted for "+str(ename)
+            except IOError:
+                print "No spikes found for channel "+ename[-3:]
     
-    # section for sorting all spikes.
-    timer = Electrode.laptimer()
-    neuron_count = []
-    for ename in enames:    
-        try:
-            # LOAD RESAMPLED DATA
-            rda = np.load(experiment+'subsampled_test_sets/'+ename+'_rda.npy')
-            tda = np.load(experiment+'subsampled_test_sets/'+ename+'_tda.npy')
-            full_ele = Electrode.Electrode(ename)# ignore all the names etc
-            full_ele.load_array_data(rda, tda)
+        print ("Time to serially sort all spikes "
+                        +str(round(timer(),2))+"s.")
+        
+        # define plots
+        def plot_frate(spike_times, window=600):
+            times,frates = Electrode.firing_rates(spike_times, win=window)
+            fig = plt.figure()
+            plt.plot(times/3600, frates,'k.')
+            plt.xlim([0,np.max(times/3600)])
+            plt.xlabel('Time (h)')
+            plt.tight_layout()
+            plt.ylabel('10-min Mean Freq. (Hz)')
+            return fig
+        
+        def plot_isi_hist(spike_times):
+            isi = np.diff(spike_times)
+            isi_millis = 1000*isi
+            fig = plt.figure()
+            ax = plt.subplot()
+            ax.hist(isi_millis, bins=np.linspace(0,1000,101))
+            ax.set_xlabel('ISI (ms)')
+            #ax.set_xscale('log')
+            ax.set_ylabel('Count')
+            plt.tight_layout()
+            return fig
             
-            # SORT THE SPIKES
-            spks_sorted, nc = sort_electrode(
-               ename, experiment, mcd_labels, 10, full_ele, 
-               savenpy=experiment+'numpy_neurons_recursive/',
-               saveplots=experiment+'sorting_results/plots/')
-               
-            print "Sorted for "+str(ename)
-        except IOError:
-            print "No spikes found for channel "+ename[-3:]
-
-    print ("Time to serially sort all spikes "
-                    +str(round(timer(),2))+"s.")
-    
-    # define plots
-    def plot_frate(spike_times, window=600):
-        times,frates = Electrode.firing_rates(spike_times, win=window)
-        fig = plt.figure()
-        plt.plot(times/3600, frates,'k.')
-        plt.xlim([0,np.max(times/3600)])
-        plt.xlabel('Time (h)')
-        plt.tight_layout()
-        plt.ylabel('10-min Mean Freq. (Hz)')
-        return fig
-    
-    def plot_isi_hist(spike_times):
-        isi = np.diff(spike_times)
-        isi_millis = 1000*isi
-        fig = plt.figure()
-        ax = plt.subplot()
-        ax.hist(isi_millis, bins=np.linspace(0,1000,101))
-        ax.set_xlabel('ISI (ms)')
-        #ax.set_xscale('log')
-        ax.set_ylabel('Count')
-        plt.tight_layout()
-        return fig
         
     
-
-    # process the python neurons
-    result_path = experiment+'numpy_neurons_recursive'
-    nfiles = np.sort(os.listdir(result_path))
-    for nn in nfiles:
-        if nn[-3:]=='npy' and nn[4]=='n':
-            times = np.load(result_path+'/'+nn)
-            if len(times) > 0:
-                try:
-                    np.savetxt(experiment+'/sorting_results/csv/'+nn[:-4]+
-                                '.csv', times, delimiter=',')
-                    #save plots
-                    fig1 = plot_frate(times)
-                    fig1.savefig(experiment+'/sorting_results/plots/'
-                                        +nn[:11]+'_rate.png')
-                    plt.clf()
-                    plt.close(fig1)
-                    fig2 = plot_isi_hist(times)
-                    fig2.savefig(experiment+'/sorting_results/plots/'
-                                        +nn[:11]+'_isihist.png')
-                    plt.clf()
-                    plt.close(fig2)
-                except: print 'failed for'+nn
+        # process the python neurons
+        result_path = experiment+'numpy_neurons/'+directory+'/'
+        nfiles = np.sort(os.listdir(result_path))
+        for nn in nfiles:
+            if nn[-3:]=='npy' and nn[4]=='n':
+                times = np.load(result_path+'/'+nn)
+                if len(times) > 0:
+                    try:
+                        np.savetxt(experiment+'/sorting_plots/'+nn[:-4]+
+                                    '.csv', times, delimiter=',')
+                        #save plots
+                        fig1 = plot_frate(times)
+                        fig1.savefig(experiment+'/sorting_plots/'
+                                            +nn[:11]+'_rate.png')
+                        plt.clf()
+                        plt.close(fig1)
+                        fig2 = plot_isi_hist(times)
+                        fig2.savefig(experiment+'/sorting_plots/'
+                                            +nn[:11]+'_isihist.png')
+                        plt.clf()
+                        plt.close(fig2)
+                    except: print 'failed for'+nn
             
             
             

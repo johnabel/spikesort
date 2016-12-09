@@ -19,46 +19,33 @@ import os
 import Electrode as ele
 
 # arguments for this file
-mcd_locations = 'data/032016_1104amstart/'
+mcd_locations = 'data/stimulation_included/'
 database_path = mcd_locations # put database in same location
-num_cpus = 5 # consumes about 1gb ram/cpu
+num_cpus = 10 # consumes about 1gb ram/cpu
 verbose=True
 
 
 timer = ele.laptimer() # start timing
 if os.path.isdir(database_path+'/numpy_database'):
     print ("Database already exists in "+database_path+
-            ". Please select a new location.")
+            ". Please select a new location or delete existing database.")
     import sys
     sys.exit()
-
-else: os.mkdir(database_path+'/numpy_database')
+else:
+    print "Initializing numpy database in " +database_path+"/numpy_database."
+    os.mkdir(database_path+'/numpy_database')
 
 # load up the files
-files_in_folder = np.sort(os.listdir(mcd_locations+'/mcd'))
-files = []
-for filei in files_in_folder:
-    if filei[0]=='.':
-        pass
-    else:
-        files.append(filei)
-        
-# correct for first file with no numbering
-if files[0][-5]=='t':
-    os.rename(mcd_locations+'/mcd/'+files[0], 
-              mcd_locations+'/mcd/'+files[0][:-4]+'0000.mcd')
-    files[0] = files[0][:-4]+'0000.mcd'
+print "Reading subdirectories. Please ensure these are in sequential order."
+subdirectories = np.sort(os.listdir(mcd_locations+'/mcd'))
 
-# identify and save the names of the electrodes
-fd = ns.File(mcd_locations+'/mcd/'+files[0])
-enames = [entity.label[24:] for entity in fd.list_entities()]
-np.save(database_path+'numpy_database/enames.npy', enames)
 
 #create a function to generate the database
-def convert(filei):
-    if verbose: print 'Running for '+str(filei[-8:-4])
-    fd = ns.File(mcd_locations+'/mcd/'+filei)
-    os.mkdir(database_path+'numpy_database/'+str(filei[-8:-4]))
+def convert(dirfile):
+    directory,filei = dirfile
+    if verbose: print 'Running for '+directory+' '+str(filei[-8:-4])
+    fd = ns.File(mcd_locations+'/mcd/'+directory+filei)
+    os.mkdir(database_path+'numpy_database/'+directory+str(filei[-8:-4]))
     data = dict() #raw recordings
     time = dict() #time from mcd file
     count= dict() #sample count
@@ -87,47 +74,59 @@ def convert(filei):
             if np.max(time[name]) > new_running_time:
                 new_running_time = np.max(time[name])
             # save times and spike shapes
-            np.save(database_path+'numpy_database/'+str(filei[-8:-4])
+            np.save(database_path+'numpy_database/'+directory+'/'+str(filei[-8:-4])
                     +'/time_'+name+'.npy', time[name])
-            np.save(database_path+'numpy_database/'+str(filei[-8:-4])
+            np.save(database_path+'numpy_database/'+directory+'/'+str(filei[-8:-4])
                     +'/spikes_'+name+'.npy', data[name])
     return new_running_time
         
-# parallelize creation of the database
-with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
-    result = executor.map(convert, files)
 
-# correct times in the database 
+
+
 durations = []
-for r in result:
-    durations.append(r)
-time_correction = np.hstack([[0],np.cumsum(durations)[:-1]])
-for i,filei in enumerate(files):
-    for name in enames:
-        try:
-            times = np.load(database_path+'numpy_database/'
-                    +str(filei[-8:-4]) +'/time_'+name+'.npy')
-            times = times + time_correction[i]
-            np.save(database_path+'numpy_database/'+str(filei[-8:-4])
-                        +'/time_'+name+'.npy', times)
-        except:
-            pass # if there were no spikes
+for idx, directory in enumerate(subdirectories):
+    # loop through the portions of the experiment
+    files_in_folder = np.sort(os.listdir(mcd_locations+'/mcd/'+directory))
+    files = []
+    os.mkdir(mcd_locations+'numpy_database/'+directory)
+    for filei in files_in_folder:
+        if filei[0]=='.':
+            pass
+        else:
+            files.append([directory+'/', filei])
+    if idx is 0:
+        # identify and save the names of the electrodes
+        fd = ns.File(mcd_locations+'/mcd/'+subdirectories[0]+'/'+files[0][1])
+        enames = np.sort([entity.label[24:] for entity in fd.list_entities()])
+        np.save(database_path+'numpy_database/enames.npy', enames)
+        
+    # correct for first file with no numbering
+    if files[0][0][-5]=='t':
+        os.rename(mcd_locations+'/mcd/'+directory+'/'+files[0][0], 
+                  mcd_locations+'/mcd/'+files[0][:-4]+'0000.mcd')
+        files[0][0] = files[0][0][:-4]+'0000.mcd'
+        
+    # parallelize creation of the database
+    with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
+        result = executor.map(convert, files)
+
+    # correct times in the database 
+    for r in result:
+        durations.append(r)
+    time_correction = np.hstack([[0],np.cumsum(durations)[:-1]])
+    for i,filei in enumerate(files):
+        for name in enames:
+            try:
+                times = np.load(database_path+'numpy_database/'+directory+'/'
+                        +str(filei[1][-8:-4]) +'/time_'+name+'.npy')
+                times = times + time_correction[i]
+                np.save(database_path+'numpy_database/'+directory+'/'+
+                        str(filei[1][-8:-4]) +'/time_'+name+'.npy', times)
+            except:
+                pass # if there were no spikes
 
 
 
 # return how long it took
 print timer()
 
-
-
-# comparing time to load files from db or from mcd
-filei = files[0]
-
-print "Loading time from db:  "
-timer = ele.laptimer()
-a1,b1,c1 = ele._load_database_subsample(mcd_locations, '0000', '21B', 0.05)
-print timer()
-
-print "Loading time from mcd: "
-a,b,c = ele._load_mcd_subsample(mcd_locations+'mcd/'+filei, 'spks 21B',0.05)
-print timer()

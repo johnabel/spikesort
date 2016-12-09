@@ -22,7 +22,9 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/mega_clusters/'
+experiment = 'data/032016_1104amstart/'
+database_path = experiment # put subsamples in this spot
+fraction_subsample = 0.05
 
 
 
@@ -202,8 +204,8 @@ if __name__=='__main__':
     # if the folder exists, this prevents it from being overwritten
     # if you want to overwrite it, just delete it.
     
-    experiment = 'data/mega_clusters/'
-    enames = ['33','35','75']
+
+    enames = ['33B']
     
     
     # section for sorting all spikes.
@@ -242,18 +244,7 @@ if __name__=='__main__':
                 full_ele.recursive_sort_spikes(noise_free_data, noise_free_times, 
                                       pca_tree, gmm_tree, std_tree, final_method='std')
                 neuron_count = full_ele.num_clusters
-                print "prelim count ="+str(neuron_count)
-                
-                iterate = 0
-                while neuron_count > 7: #tunable
-                    pca_tree, gmm_tree, std_tree = full_ele.recursive_fit_gmm(
-                                        noise_free_data, noise_free_times, 
-                                        pca_data_noise, bics_thresh=5000000)
-                    full_ele.recursive_sort_spikes(noise_free_data, noise_free_times, 
-                                          pca_tree, gmm_tree, std_tree, final_method='std')
-                    neuron_count = full_ele.num_clusters
-                    print "revised count ="+str(neuron_count)
-                    iterate+=1
+
 
     print ("Time to serially sort all spikes "
                     +str(round(timer(),2))+"s.")

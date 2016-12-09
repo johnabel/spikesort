@@ -146,8 +146,8 @@ class Electrode(object):
                     reduced_transformed_data[:,i]/(3*precalc_std[i])
                             for i in range(len(reduced_transformed_data[0,:]))]).T*0.5      
             # this allows us to change the fit data if we wish
-            fit_data = rescale_rtd[np.where(np.abs(rescale_rtd[:,0])<=1)]
-            fit_data = fit_data[np.where(np.abs(fit_data[:,1])<=1)] 
+            fit_data = rescale_rtd#[np.where(np.abs(rescale_rtd[:,0])<=1)]
+            #fit_data = fit_data[np.where(np.abs(fit_data[:,1])<=1)] 
                 
             # track Bayesian information criterion
             bics = [1000000]
@@ -615,6 +615,33 @@ class Electrode(object):
         ax.set_title(self.name)
         if return_fig is True:
             return fig
+        
+    def plot_3dclustering(self, times, pc1=0, pc2=1, return_fig=False):
+        """
+        Plots the clustering results for the electrode. pc1 and pc2 are the 
+        principal components which are plotted.
+        """
+        from mpl_toolkits.mplot3d import Axes3D
+
+
+        #plotting utilities
+        colors='bgrcmyw'
+        predicted = self.pred
+        elim_loc = np.where(self.pred<0)
+        pred_loc = np.where(self.pred>=0)
+        
+        fig = plt.figure(figsize=(3.5,2.42))
+        ax = fig.add_subplot(111, projection='3d')
+        #make_ellipses(self.gmm, ax)
+        clust_color = [colors[i%len(colors)] for i in predicted[pred_loc]]
+        ax.scatter(self.rescale_rtd[elim_loc, pc1], self.rescale_rtd[elim_loc,pc2], times[elim_loc], marker='.',
+                    alpha=0.1, c='k')
+        ax.scatter(self.rescale_rtd[pred_loc,pc1], self.rescale_rtd[pred_loc,pc2], times[pred_loc], marker='.',
+                    alpha=0.1, c=clust_color)
+        ax.set_xlabel('PC'+str(pc1+1)); ax.set_ylabel('PC'+str(pc2+1));
+        ax.set_title(self.name)
+        if return_fig is True:
+            return fig
             
     def plot_through_time(self, times, pc1=0, pc2=1, return_fig=False):
         """
@@ -776,11 +803,11 @@ def _load_database_byname(database_path, mcd_number, ename):
     if type(mcd_number) is int:
         mcd_number = str(mcd_number)
     # only load if there are any spikes
-    if os.path.isfile(database_path+'numpy_database/'+mcd_number+
+    if os.path.isfile(database_path+'/'+mcd_number+
                         '/spikes_'+ename+'.npy'):
-        data = np.load(database_path+'numpy_database/'+mcd_number+
+        data = np.load(database_path+'/'+mcd_number+
                         '/spikes_'+ename+'.npy')
-        time =  np.load(database_path+'numpy_database/'+mcd_number+
+        time =  np.load(database_path+'/'+mcd_number+
                         '/time_'+ename+'.npy')
         spike_count = len(time)
     # if no spikes add an empty one
@@ -792,11 +819,11 @@ def _load_database_subsample(database_path, mcd_number, ename, frac_subsample):
     if type(mcd_number) is int:
         mcd_number = str(mcd_number)
     # only load if there are any spikes
-    if os.path.isfile(database_path+'numpy_database/'+mcd_number+
+    if os.path.isfile(database_path+'/'+mcd_number+
                         '/spikes_'+ename+'.npy'):
-        data1 = np.load(database_path+'numpy_database/'+mcd_number+
+        data1 = np.load(database_path+'/'+mcd_number+
                         '/spikes_'+ename+'.npy')
-        time1 =  np.load(database_path+'numpy_database/'+mcd_number+
+        time1 =  np.load(database_path+'/'+mcd_number+
                         '/time_'+ename+'.npy')
         deck = range(len(time1))
         np.random.shuffle(deck)
