@@ -70,9 +70,11 @@ def categorize(inputs):
                                        std_tree, final_method='std', 
                                        )
                                    
-            result = [[] for i in range(ele1.num_clusters)] 
+            result = [[[] for i in range(ele1.num_clusters)], 
+                       [[] for i in range(ele1.num_clusters)]] 
             for i in range(ele1.num_clusters):
-                result[i] = np.asarray(ele1.neuron_spike_times[str(i)])
+                result[0][i] = np.asarray(ele1.neuron_spike_times[str(i)])
+                result[1][i] = np.asarray(ele1.neurons[str(i)])
         else: 
             result=0    
     except: 
@@ -104,7 +106,7 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
     cluster_count = full_ele.num_clusters
     if cluster_count == 1:
         # there is only noise
-        return [], 0
+        return [], [], 0
     
     else:
         #deconstruct pca, gmm
@@ -141,18 +143,22 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
         
         # get the outputs into a reasonable format
         firing_times = [[] for _ in range(neuron_count)]
+        spike_shapes = [[] for _ in range(neuron_count)]
         for idx,output in enumerate(outputs):
             if output==-1: pass # ignore if no output
             else:
                 for neuron_index in range(neuron_count):
                     firing_times[neuron_index].append(
-                            output[neuron_index])
+                            output[0][neuron_index])
+                    spike_shapes[neuron_index].append(output[1][neuron_index])
         spike_time_arrays = []
+        spike_shape_arrays = []
         for i in range(neuron_count):
             if len(firing_times[i])>0:
                 spike_time_arrays.append(np.hstack(firing_times[i]))
+                spike_shape_arrays.append(np.hstack(spike_shapes[i]))
             else:
-                spike_times_arrays.append(np.array([0]))
+                spike_time_arrays.append()
                                         
                                         
         # saving the numpy arrays, and the plots
@@ -165,26 +171,24 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
                 plt.close(fig2)
                 for pc in range(full_ele.num_comp)[1:]:
                     fig1 = full_ele.plot_clustering(return_fig=True,pc2=pc)
-                    fig1.savefig(saveplots+ename+str(pc)+'pc_clusters.png')
+                    fig1.savefig(saveplots+ename+'_'+str(pc)+'pc_clusters.png')
                     plt.clf()
                     plt.close(fig1)
                     fig3 = full_ele.plot_heatmap(return_fig=True,  pc2=pc)
-                    fig3.savefig(saveplots+ename+str(pc)+'pc_heatmap.png')
+                    fig3.savefig(saveplots+ename+'_'+str(pc)+'pc_heatmap.png')
                     plt.clf()
                     plt.close(fig3)
 
             # numpy arrays
             for i in range(neuron_count):
                 np.save(savenpy+ename+'_n'+str(i)+'_profiles.npy',
-                            full_ele.neurons[str(i)])
+                            spike_shape_arrays[i])
                 np.save(savenpy+ename+'_n'+str(i)+'_times.npy',
                             spike_time_arrays[i])
-                timeshape = np.hstack([np.asarray([spike_time_arrays[i]]).T,
-                                       ])
                 np.savetxt(saveplots+ename+
                                 '_waveform.csv', waveforms, delimiter=',')
                             
-        return spike_time_arrays, neuron_count
+        return spike_time_arrays, spike_shape_arrays, neuron_count
     
 
 
@@ -239,12 +243,11 @@ if __name__=='__main__':
                 full_ele.load_array_data(rda, tda)
                 
                 # SORT THE SPIKES
-                spks_sorted, nc = sort_electrode(
+                spks_sorted, spks_shapes, nc = sort_electrode(
                    ename, experiment+'numpy_database/'+directory+'/',
                    mcd_labels, 10, full_ele, 
                    savenpy=experiment+'numpy_neurons/'+directory+'/',
-                   saveplots=experiment+'numpy_neurons/'+directory+
-                   '/sorting_plots/')
+                   saveplots=experiment+'numpy_neurons/'+directory+'/sorting_plots/')
                    
                 print "Sorted for "+str(ename)
             except IOError:
