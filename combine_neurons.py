@@ -28,7 +28,8 @@ import matplotlib.pyplot as plt
 experiment = 'data/stimulation_included/'
 database_path = experiment # put subsamples in this spot
 result_path = experiment+"numpy_neurons"
-subdirectories = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
+subdirs = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
+stim = '1stim'
 
 
 def combine_neurons(ename, subdirs, stim):
@@ -93,7 +94,7 @@ def combine_neurons(ename, subdirs, stim):
     if len(ename_neurons[expt_subdirs[0]].keys())>0:
         neuron_matches[0]+= list(np.sort(ename_neurons[expt_subdirs[0]].keys()))
     else:
-         neuron_matches[0]+=[-1]
+         neuron_matches[0]+=['-1']
     for subdiridx,subdir in enumerate(expt_subdirs[:-1]):
         subdir1 = expt_subdirs[subdiridx+1]
         neurons_first = np.sort(ename_neurons[subdir].keys())
@@ -110,9 +111,9 @@ def combine_neurons(ename, subdirs, stim):
         # therefore nothing is connected
         if sim_mat.shape[1]==0:
             # if nothing shows up during the stimulus, all neurons have nomatch
-            neuron_matches[subdiridx+1]+=[-1]*sim_mat.shape[0] 
+            neuron_matches[subdiridx+1]+=['-1']*sim_mat.shape[0] 
         elif sim_mat.shape[0]==0:
-            neuron_matches[subdiridx+1]+=[-1]*sim_mat.shape[1]
+            neuron_matches[subdiridx+1]+=['-1']+list(neurons_second)
         else:
             finished = False
             last_sort = neuron_matches[subdiridx][1:]
@@ -168,13 +169,17 @@ def combine_neurons(ename, subdirs, stim):
         shape2 = stim_neurons[subdir1][comparison[1]]
         sim_mat[c0, c1]= fastdtw(shape1, shape2)[0]
     
-    if sim_mat.shape[1]==0:
+    if sim_mat.shape==(0,0):
+        # nothing during the comparison period, nothing shows up during stim
+        stim_matches[0]+=['-1']
+        stim_matches[1]+=['-1']
+    elif sim_mat.shape[1]==0:
         # nothing shows up during the stimulus
-        stim_matches[1]+=[-1]*sim_mat.shape[0] # all neurons have no match
-    if sim_mat.shape[0]==0:
+        stim_matches[1]+=['-1']*sim_mat.shape[0] # all neurons have no match
+    elif sim_mat.shape[0]==0:
         #nothing shows up during related recording
-        stim_matches[0]+=[-1]*sim_mat.shape[1]
-        stim_matches[1]+=[-1]*sim_mat.shape[1]+list(set(neurons_second))
+        stim_matches[0]+=['-1']*sim_mat.shape[1]
+        stim_matches[1]+=['-1']*sim_mat.shape[1]+list(set(neurons_second))
     else:
         finished = False
         last_sort = stim_matches[subdiridx][1:]
@@ -225,31 +230,33 @@ def combine_neurons(ename, subdirs, stim):
         match_row = idx+1
         expt_matches = matching[match_row][1:-1]
         if any(expt_matches=='-1'):
-            # neuron doesn't show up in every day
-            fig = plt.figure()
-            ax = plt.subplot()
-            for segidx, segment in enumerate(matching[0,1:]):
-                # save all parts including stim to the incomplete neurons dir
-                if matching[match_row, segidx+1]!='-1':
-                    times = np.load(result_path+'/'+segment+'/'+ename+'_n'+
-                                    matching[match_row, segidx+1]+'_times.npy')
-                    spikes = np.load(result_path+'/'+segment+'/'+ename+'_n'+
-                                    matching[match_row, segidx+1]+'_profiles.npy')
-                    ax.plot(spikes.mean(0), label = segment)
-                    np.save(result_path+'/combined_neurons/'+ename+
-                        '/incomplete_neurons/neuron'+matching[match_row, 0]+'_'
-                        +segment+'_spikes.npy', spikes)
-                    np.save(result_path+'/combined_neurons/'+ename+
-                        '/incomplete_neurons/neuron'+matching[match_row, 0]+'_'
-                        +segment+'_times.npy', times)
-            plt.legend()
-            plt.ylim([-0.0001, 0.0001])
-            plt.tight_layout()
-            fig.savefig(result_path+'/combined_neurons/'+ename+
-                        '/incomplete_neurons/neuron'+str(match_row)+
-                        '_unmatched_spikes.png')
-            plt.clf()
-            plt.close(fig)
+            # if neuron doesn't show up for some portion of time
+            if any(expt_matches!='-1'):
+                # if neuron still exists
+                fig = plt.figure()
+                ax = plt.subplot()
+                for segidx, segment in enumerate(matching[0,1:]):
+                    # save all parts including stim to the incomplete neurons dir
+                    if matching[match_row, segidx+1]!='-1':
+                        times = np.load(result_path+'/'+segment+'/'+ename+'_n'+
+                                        matching[match_row, segidx+1]+'_times.npy')
+                        spikes = np.load(result_path+'/'+segment+'/'+ename+'_n'+
+                                        matching[match_row, segidx+1]+'_profiles.npy')
+                        ax.plot(spikes.mean(0), label = segment)
+                        np.save(result_path+'/combined_neurons/'+ename+
+                            '/incomplete_neurons/neuron'+matching[match_row, 0]+'_'
+                            +segment+'_spikes.npy', spikes)
+                        np.save(result_path+'/combined_neurons/'+ename+
+                            '/incomplete_neurons/neuron'+matching[match_row, 0]+'_'
+                            +segment+'_times.npy', times)
+                plt.legend()
+                plt.ylim([-0.0001, 0.0001])
+                plt.tight_layout()
+                fig.savefig(result_path+'/combined_neurons/'+ename+
+                            '/incomplete_neurons/neuron'+str(match_row)+
+                            '_unmatched_spikes.png')
+                plt.clf()
+                plt.close(fig)
         else:
             # combine segments and save
             # includes plotting of spike shapes!
@@ -319,7 +326,7 @@ if __name__=='__main__':
     
     timer = Electrode.laptimer()    
     for eidx,ename in enumerate(enames):
-        combine_neurons(ename, subdirectories, '1stim')
+        combine_neurons(ename, subdirs, '1stim')
         
 
     print "Total combination time: "+str(np.round(timer(), 2))+"."
