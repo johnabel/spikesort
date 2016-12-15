@@ -49,7 +49,7 @@ def plot_isi(spike_times):
     ax = plt.subplot()
     ax.plot(spike_times[:-1]/3600,isi_millis,'k.', alpha=0.1)
     ax.set_ylabel('1/ISI')
-    ax.set_ylim([0,50])
+    ax.set_ylim([0,20])
     ax.set_xlabel('Time (h)')
     plt.tight_layout()
     return fig
@@ -296,6 +296,7 @@ def combine_neurons(ename, subdirs, stim):
             full_spikes = []
             complete_fig = plt.figure()
             bx = plt.subplot()
+            colors = 'rgbyk'
             for segidx, segment in enumerate(segments):
                 times = np.load(result_path+'/'+segment+'/'+ename+'_n'+
                                 expt_matches[segidx]+'_times.npy')
@@ -303,7 +304,9 @@ def combine_neurons(ename, subdirs, stim):
                                 expt_matches[segidx]+'_profiles.npy')
                 full_spikes +=[spikes]
                 full_times +=[times]
-                bx.plot(spikes.mean(0), label = segment)
+                bx.plot(spikes.mean(0), color=colors[segidx], label = segment)
+                bx.fill_between(range(40), spikes.mean(0)+spikes.std(0), 
+                                spikes.mean(0)-spikes.std(0), color=colors[segidx], alpha=0.1)
             if matching[match_row][-1] != '-1':
                 times = np.load(result_path+'/'+stim+'/'+ename+'_n'+
                                 matching[match_row][-1]+'_times.npy')
