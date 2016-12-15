@@ -84,6 +84,7 @@ def convert(dirfile):
 
 
 durations = []
+last_max = 0
 for idx, directory in enumerate(subdirectories):
     # loop through the portions of the experiment
     files_in_folder = np.sort(os.listdir(mcd_locations+'/mcd/'+directory))
@@ -113,7 +114,7 @@ for idx, directory in enumerate(subdirectories):
     # correct times in the database 
     for r in result:
         durations.append(r)
-    time_correction = np.hstack([[0],np.cumsum(durations)[:-1]])
+    time_correction = np.hstack([[last_max],last_max+np.cumsum(durations)[:-1]])
     for i,filei in enumerate(files):
         for name in enames:
             try:
@@ -124,7 +125,7 @@ for idx, directory in enumerate(subdirectories):
                         str(filei[1][-8:-4]) +'/time_'+name+'.npy', times)
             except:
                 pass # if there were no spikes
-
+    last_max = last_max+np.cumsum(durations)[-1]
 
 
 # return how long it took

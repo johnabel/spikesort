@@ -256,53 +256,8 @@ if __name__=='__main__':
         print ("Time to serially sort all spikes "
                         +str(round(timer(),2))+"s.")
         
-        # define plots
-        def plot_frate(spike_times, window=600):
-            times,frates = Electrode.firing_rates(spike_times, win=window)
-            fig = plt.figure()
-            plt.plot(times/3600, frates,'k.')
-            plt.xlim([0,np.max(times/3600)])
-            plt.xlabel('Time (h)')
-            plt.tight_layout()
-            plt.ylabel('10-min Mean Freq. (Hz)')
-            return fig
-        
-        def plot_isi_hist(spike_times):
-            isi = np.diff(spike_times)
-            isi_millis = 1000*isi
-            fig = plt.figure()
-            ax = plt.subplot()
-            ax.hist(isi_millis, bins=np.linspace(0,1000,101))
-            ax.set_xlabel('ISI (ms)')
-            #ax.set_xscale('log')
-            ax.set_ylabel('Count')
-            plt.tight_layout()
-            return fig
+
             
-        
-    
-        # process the python neurons
-        result_path = experiment+'numpy_neurons/'+directory+'/'
-        nfiles = np.sort(os.listdir(result_path))
-        for nn in nfiles:
-            if nn[-3:]=='npy' and nn[4]=='n':
-                times = np.load(result_path+'/'+nn)
-                if len(times) > 0:
-                    try:
-                        np.savetxt(experiment+'/sorting_plots/'+nn[:-4]+
-                                    '.csv', times, delimiter=',')
-                        #save plots
-                        fig1 = plot_frate(times)
-                        fig1.savefig(experiment+'/sorting_plots/'
-                                            +nn[:11]+'_rate.png')
-                        plt.clf()
-                        plt.close(fig1)
-                        fig2 = plot_isi_hist(times)
-                        fig2.savefig(experiment+'/sorting_plots/'
-                                            +nn[:11]+'_isihist.png')
-                        plt.clf()
-                        plt.close(fig2)
-                    except: print 'failed for'+nn
-            
+
             
             
