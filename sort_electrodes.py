@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 #trial data
 experiment = 'data/stimulation_included/'
-enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
+enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))[:10]
 
 
 
