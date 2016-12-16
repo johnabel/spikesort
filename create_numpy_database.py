@@ -128,6 +128,5 @@ for idx, directory in enumerate(subdirectories):
     last_max = last_max+np.cumsum(durations)[-1]
 
 
-# return how long it took
-print timer()
+
 

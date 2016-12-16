@@ -17,7 +17,7 @@ from concurrent import futures # requires pip install futures
 import os
 from collections import Counter
 import itertools
-from fastdtw import fastdtw
+
 
 
 import matplotlib as mpl
