@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 #trial data
 experiment = 'data/stimulation_included/'
 database_path = experiment # put subsamples in this spot
-fraction_subsample = [0.5, 0.9, 0.5]
+fraction_subsample = [0.5, 0.9, 0.9, 0.5, 0.9]
 
 
 

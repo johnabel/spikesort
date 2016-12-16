@@ -29,7 +29,7 @@ experiment = 'data/stimulation_included/'
 database_path = experiment # put subsamples in this spot
 result_path = experiment+"numpy_neurons"
 subdirs = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
-stim = '1stim'
+stim = '2stim'
 
 # define plots
 def plot_frate(spike_times, window=600):
@@ -223,7 +223,7 @@ def combine_neurons(ename, subdirs, stim):
         stim_matches[1]+=['-1']*sim_mat.shape[1]+list(set(neurons_second))
     else:
         finished = False
-        last_sort = stim_matches[subdiridx][1:]
+        last_sort = stim_matches[0][1:]
         this_sort = -1*np.ones(len(last_sort))
         while finished is False:
             min_loc = np.unravel_index(sim_mat.argmax(), sim_mat.shape)
@@ -238,17 +238,25 @@ def combine_neurons(ename, subdirs, stim):
                 disconnected_neurons = list(set(neurons_second)
                                     -set(this_sort.astype(int).astype(str)))
                 finished=True
-        stim_matches[subdiridx+1]+= (
+        stim_matches[1]+= (
                 list(this_sort.astype(int).astype(str))+disconnected_neurons ) 
             
     # now, we need to line stim_matches up with the neuron_matches
     neuron_matches+=[[stim]]
     match_line = np.where(expt_subdirs==stim_subdirs[0])[0][0]
     for neuron_ind in neuron_matches[match_line][1:]:
-        # find where the stim neuron id will be located
-        stim_location = np.where(np.asarray(stim_matches[0])==neuron_ind)[0][0]
-        # save it to neuron_matches
-        neuron_matches[-1]+=[stim_matches[1][stim_location]]
+        if neuron_ind=='-1':
+            neuron_matches[-1]+=['-1']
+        else:
+            # find where the stim neuron id will be located
+            stim_location = np.where(np.asarray(stim_matches[0])==neuron_ind)[0][0]
+            # save it to neuron_matches
+            neuron_matches[-1]+=[stim_matches[1][stim_location]]
+    
+    # make sure we 
+    disconnected_neurons = list(set(stim_matches[1])
+                                -set(neuron_matches[-1]))
+    neuron_matches[-1]+=disconnected_neurons
     
     # fix format of matches so the lengths are the same
     length = len(sorted(neuron_matches,key=len, reverse=True)[0])
@@ -385,7 +393,7 @@ if __name__=='__main__':
     
     timer = Electrode.laptimer()    
     for eidx,ename in enumerate(enames):
-        combine_neurons(ename, subdirs, '1stim')
+        combine_neurons(ename, subdirs, stim)
         
 
     print "Total combination time: "+str(np.round(timer(), 2))+"."
