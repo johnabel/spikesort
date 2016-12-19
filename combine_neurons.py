@@ -48,7 +48,7 @@ def plot_isi(spike_times):
     fig = plt.figure()
     ax = plt.subplot()
     ax.plot(spike_times[:-1]/3600,isi_millis,'k.', alpha=0.1)
-    ax.set_ylabel('1/ISI')
+    ax.set_ylabel('1/ISI (Hz)')
     ax.set_ylim([0,20])
     ax.set_xlabel('Time (h)')
     plt.tight_layout()
@@ -61,7 +61,7 @@ def plot_isi_min(spike_times):
     ax.plot(spike_times[:-1]/3600,isi,'.', alpha=0.1)
     ax.set_xlabel('Time (h)')
     #ax.set_xscale('log')
-    ax.set_ylabel('ISI')
+    ax.set_ylabel('ISI (s)')
     ax.set_ylim([0,1])
     plt.tight_layout()
     return fig
@@ -274,29 +274,204 @@ def combine_neurons(ename, subdirs, stim):
     # go through neurons, return the experimental part
     segments = matching[0,1:-1]
     # start the plot of incomplete neurons
-    incomplete_fig = plt.figure()
+    incomplete_fig = plt.figure(figsize=(8,6))
     ax = plt.subplot()
-    for idx, neuron_id in enumerate(matching[1:,0]):
-        match_row = idx+1
+    for midx, new_id in enumerate(matching[1:,0]):
+        match_row = midx+1
         expt_matches = matching[match_row][1:-1]
-        if any(expt_matches=='-1'):
-            # if neuron doesn't show up for some portion of time
-            if any(expt_matches!='-1'):
-                # if neuron still exists
-                for segidx, segment in enumerate(matching[0,1:]):
-                    # save all parts including stim to the incomplete neurons dir
-                    if matching[match_row, segidx+1]!='-1':
-                        times = np.load(result_path+'/'+segment+'/'+ename+'_n'+
-                                        matching[match_row, segidx+1]+'_times.npy')
-                        spikes = np.load(result_path+'/'+segment+'/'+ename+'_n'+
-                                        matching[match_row, segidx+1]+'_profiles.npy')
-                        ax.plot(spikes.mean(0), label = segment+matching[match_row, 0])
+        #the locations of the time before stimulus, and stimulus
+        stim_matches = matching[match_row][[stim_loc,-1]]
+        
+        # get a counter going
+        counter = 0
+        full_times = []
+        full_spikes = []
+        names = ''
+        # start collecting the data
+        for idx, neuron_id in enumerate(expt_matches):
+            # if the neuron exists
+            if neuron_id!='-1':
+                counter+=1
+                segment = segments[idx]
+                names+= segment[0]
+                # collect spikes and times
+                times  = np.load(result_path+'/'+segment+'/'+ename+'_n'+
+                                neuron_id+'_times.npy')
+                spikes = np.load(result_path+'/'+segment+'/'+ename+'_n'+
+                                neuron_id+'_profiles.npy')
+                full_times.append(times)
+                full_spikes.append(spikes)
+                
+            if neuron_id=='-1' or idx+1==len(expt_matches):
+                # neuron no longer exists, now figure out if it's worth keeping
+                # may either be end of experiment, or just a -1
+                if counter > 1: #save it as a full_neuron
+      
+                    # plot everyting
+                    colors = 'rgbyk'
+                    full_fig = plt.figure()
+                    bx = plt.subplot()
+                    for sidx, spikes in enumerate(full_spikes):
+                        bx.plot(spikes.mean(0), color=colors[sidx%5], 
+                                label = names[sidx])
+                        bx.fill_between(range(40), 
+                                        spikes.mean(0)+spikes.std(0), 
+                                        spikes.mean(0)-spikes.std(0),
+                                        color=colors[sidx%5], alpha=0.1)
+                    
+                    # if stimulus is tied to this full neuron
+                    if (names.find(stim_matches[0]) >= 0 
+                                and stim_matches[1]!='-1'): 
+                        # true if 
+                        names+='s'
+                        times = np.load(result_path+'/'+stim+'/'+ename+'_n'+
+                                        stim_matches[-1]+'_times.npy')
+                        spikes = np.load(result_path+'/'+stim+'/'+ename+'_n'+
+                                        stim_matches[-1]+'_profiles.npy')
+                        bx.plot(spikes.mean(0), label = stim)
                         np.save(result_path+'/combined_neurons/'+ename+
-                            '/incomplete_neurons/neuron'+matching[match_row, 0]+'_'
-                            +segment+'_spikes.npy', spikes)
+                                '/neuron'+new_id +'_'+names+
+                                '_stim_times.npy', times)
                         np.save(result_path+'/combined_neurons/'+ename+
-                            '/incomplete_neurons/neuron'+matching[match_row, 0]+'_'
-                            +segment+'_times.npy', times)
+                                '/neuron'+new_id +'_'+names+
+                                '_stim_spikes.npy', spikes)
+                        fig2 = plot_isi(np.sort(times))
+                        fig2.savefig(result_path+'/combined_neurons/'+ename+
+                                '/full_time_plots/neuron'+new_id+'_'+names
+                                +'_stim_isi.png')
+                        plt.close(fig2)
+                    
+                    # save spikes and times
+                    np.save(result_path+'/combined_neurons/'+ename+
+                        '/neuron'+new_id+'_'+names
+                        +'_times.npy', np.hstack(full_times))
+                    np.save(result_path+'/combined_neurons/'+ename+
+                        '/neuron'+new_id+'_'+names
+                        +'_spikes.npy', np.vstack(full_spikes).T)
+                    
+                    # finish the plot of spike shapes now that 
+                    # stim may have been added
+                    bx.legend(); bx.set_ylim([-0.0001, 0.0001])
+                    plt.tight_layout()
+                    full_fig.savefig(result_path+'/combined_neurons/'+ename+
+                        '/combination_info/neuron'+new_id+'_'+names
+                        +'_spikes.png')
+                    plt.close(full_fig)
+                    
+                    # plot isi
+                    fig2 = plot_isi(np.sort(np.hstack(full_times)))
+                    fig2.savefig(result_path+'/combined_neurons/'+ename+
+                                '/full_time_plots/neuron'+new_id+'_'+names
+                                +'_isi.png')
+                    plt.close(fig2)
+                    fig3 = plot_isi_min(np.sort(np.hstack(full_times)))
+                    fig3.savefig(result_path+'/combined_neurons/'+ename+
+                                '/full_time_plots/neuron'+new_id+'_'+names
+                                +'_refractory.png')
+                    plt.close(fig3)
+                        
+                
+                elif counter==1: # save it as an incomplete neuron
+                    full_times = full_times[0]
+                    full_spikes = full_spikes[0]
+                    ax.plot(spikes.mean(0), label = 'n'+new_id+'_'+segment)
+                    np.save(result_path+'/combined_neurons/'+ename+
+                            '/incomplete_neurons/neuron'+new_id+'_'
+                            +segment+'_spikes.npy', full_spikes)
+                    np.save(result_path+'/combined_neurons/'+ename+
+                            '/incomplete_neurons/neuron'+new_id+'_'
+                            +segment+'_times.npy', full_times)
+                    
+                    # if somehow the stimulus is attached to a recording
+                    # of a neuron only in the one day before stim
+                    if (names.find(stim_matches[0]) >= 0 
+                                and stim_matches[1]!='-1'): # true if 
+                        times = np.load(result_path+'/'+stim+'/'+ename+'_n'+
+                                        stim_matches[-1]+'_times.npy')
+                        spikes = np.load(result_path+'/'+stim+'/'+ename+'_n'+
+                                        stim_matches[-1]+'_profiles.npy')
+                        ax.plot(spikes.mean(0), label = 'n'+new_id+'_'+stim)
+                        np.save(result_path+'/combined_neurons/'+ename+
+                                '/incomplete_neurons/neuron'+new_id +'_'+names+
+                                '_stim_times.npy', times)
+                        np.save(result_path+'/combined_neurons/'+ename+
+                                '/incomplete_neurons/neuron'+new_id +'_'+names+
+                                '_stim_spikes.npy', spikes)
+
+                    
+                #reset the counter
+                counter = 0
+                full_times = []
+                full_spikes = []
+                names = ''
+        
+        # if the stimulus just shows up here but it unconnected to anything
+        if (stim_matches[0]=='-1' and stim_matches[1]!='-1'):
+            # the stimulus is untied to the neuron
+            times = np.load(result_path+'/'+stim+'/'+ename+'_n'+
+                            stim_matches[-1]+'_times.npy')
+            spikes = np.load(result_path+'/'+stim+'/'+ename+'_n'+
+                            stim_matches[-1]+'_profiles.npy')
+            ax.plot(spikes.mean(0), label = new_id+'u_'+stim)
+            np.save(result_path+'/combined_neurons/'+ename+
+                    '/incomplete_neurons/neuron'+new_id+'u_'
+                    +'stim_times.npy', times)
+            np.save(result_path+'/combined_neurons/'+ename+
+                    '/incomplete_neurons/neuron'+new_id+'u_'
+                    +'stim_spikes.npy', spikes)
+                
+    # now we finish the plotting
+    plt.legend()
+    ax.set_ylim([-0.0001, 0.0001])
+    plt.tight_layout()
+    incomplete_fig.savefig(result_path+'/combined_neurons/'+ename+
+                '/incomplete_neurons/unmatched_spikes.png')
+    plt.clf()
+    plt.close(incomplete_fig)
+            
+                
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+'''     
+
+        
+        
+        
+        
+        
+        
+        
+        
         else:
             # combine segments and save
             # includes plotting of spike shapes!
@@ -374,11 +549,11 @@ def combine_neurons(ename, subdirs, stim):
     # go through neurons, return stimulated part
     
     return 
-
+'''
 if __name__=='__main__':
 
     # for spike
-    enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
+    enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))[:10]
 
     
     # if the folder exists, this prevents it from being overwritten

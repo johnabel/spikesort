@@ -83,7 +83,7 @@ def convert(dirfile):
 
 
 
-durations = []
+
 last_max = 0
 for idx, directory in enumerate(subdirectories):
     # loop through the portions of the experiment
@@ -112,6 +112,7 @@ for idx, directory in enumerate(subdirectories):
         result = executor.map(convert, files)
 
     # correct times in the database 
+    durations = []
     for r in result:
         durations.append(r)
     time_correction = np.hstack([[last_max],last_max+np.cumsum(durations)[:-1]])
