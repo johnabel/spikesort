@@ -330,23 +330,23 @@ def combine_neurons(ename, subdirs, stim):
                                         stim_matches[-1]+'_profiles.npy')
                         bx.plot(spikes.mean(0), label = stim)
                         np.save(result_path+'/combined_neurons/'+ename+
-                                '/neuron'+new_id +'_'+names+
+                                '/'+ename+'_neuron'+new_id+'_'+names+
                                 '_stim_times.npy', times)
                         np.save(result_path+'/combined_neurons/'+ename+
-                                '/neuron'+new_id +'_'+names+
+                                '/'+ename+'_neuron'+new_id+'_'+names+
                                 '_stim_spikes.npy', spikes)
                         fig2 = plot_isi(np.sort(times))
                         fig2.savefig(result_path+'/combined_neurons/'+ename+
-                                '/full_time_plots/neuron'+new_id+'_'+names
+                                '/full_time_plots/'+ename+'_neuron'+new_id+'_'+names
                                 +'_stim_isi.png')
                         plt.close(fig2)
                     
                     # save spikes and times
                     np.save(result_path+'/combined_neurons/'+ename+
-                        '/neuron'+new_id+'_'+names
+                        '/'+ename+'_neuron'+new_id+'_'+names
                         +'_times.npy', np.hstack(full_times))
                     np.save(result_path+'/combined_neurons/'+ename+
-                        '/neuron'+new_id+'_'+names
+                        '/'+ename+'_neuron'+new_id+'_'+names
                         +'_spikes.npy', np.vstack(full_spikes).T)
                     
                     # finish the plot of spike shapes now that 
@@ -354,19 +354,19 @@ def combine_neurons(ename, subdirs, stim):
                     bx.legend(); bx.set_ylim([-0.0001, 0.0001])
                     plt.tight_layout()
                     full_fig.savefig(result_path+'/combined_neurons/'+ename+
-                        '/combination_info/neuron'+new_id+'_'+names
+                        '/combination_info/'+ename+'_neuron'+new_id+'_'+names
                         +'_spikes.png')
                     plt.close(full_fig)
                     
                     # plot isi
                     fig2 = plot_isi(np.sort(np.hstack(full_times)))
                     fig2.savefig(result_path+'/combined_neurons/'+ename+
-                                '/full_time_plots/neuron'+new_id+'_'+names
+                                '/full_time_plots/'+ename+'_neuron'+new_id+'_'+names
                                 +'_isi.png')
                     plt.close(fig2)
                     fig3 = plot_isi_min(np.sort(np.hstack(full_times)))
                     fig3.savefig(result_path+'/combined_neurons/'+ename+
-                                '/full_time_plots/neuron'+new_id+'_'+names
+                                '/full_time_plots/'+ename+'_neuron'+new_id+'_'+names
                                 +'_refractory.png')
                     plt.close(fig3)
                         
@@ -392,10 +392,10 @@ def combine_neurons(ename, subdirs, stim):
                                         stim_matches[-1]+'_profiles.npy')
                         ax.plot(spikes.mean(0), label = 'n'+new_id+'_'+stim)
                         np.save(result_path+'/combined_neurons/'+ename+
-                                '/incomplete_neurons/neuron'+new_id +'_'+names+
+                                '/incomplete_neurons/'+ename+'_neuron'+new_id+'_'+names+
                                 '_stim_times.npy', times)
                         np.save(result_path+'/combined_neurons/'+ename+
-                                '/incomplete_neurons/neuron'+new_id +'_'+names+
+                                '/incomplete_neurons/'+ename+'_neuron'+new_id+'_'+names+
                                 '_stim_spikes.npy', spikes)
 
                     
