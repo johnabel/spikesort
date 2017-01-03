@@ -116,10 +116,10 @@ class Electrode(object):
             self.num_clusters = 1 # not enough spikes to try to separate them
             print ("Insufficient spikes to sort: "+str(len(sort_data))
                         +"spikes.")
-        elif np.size(sort_times) > 1E6:
-            self.num_clusters = 1 # too many spikes
-            print ("Excessive spikes for sorting, consider rethresholding: "
-                    +str(len(sort_data)) +" spikes.")
+        #elif np.size(sort_times) > 1E6:
+        #    self.num_clusters = 1 # too many spikes
+        #    print ("Excessive spikes for sorting, consider rethresholding: "
+        #            +str(len(sort_data)) +" spikes.")
         else:
             # either fit a new pca or use the provided parameters
             if pca_param is None:
