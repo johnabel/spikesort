@@ -167,8 +167,8 @@ def combine_neurons(ename, subdirs, stim):
                 if sim_mat[min_loc] > 0.9: #if the fit is reasonable...
                     # match the new neuron to its last position
                     this_sort[np.where(
-                        np.asarray(last_sort)==str(min_loc[0]))[0]] =\
-                                                            str(min_loc[1])
+                        np.asarray(last_sort)==str(neurons_first[min_loc[0]]))[0]] =\
+                                                            neurons_second[min_loc[1]]
                 sim_mat[:,min_loc[1]]+=-1 # add to the sim mat to denote finished
                 sim_mat[min_loc[0],:]+=-1 # same idea
                 # finish if all matching is done
@@ -234,7 +234,9 @@ def combine_neurons(ename, subdirs, stim):
             min_loc = np.unravel_index(sim_mat.argmax(), sim_mat.shape)
             if sim_mat[min_loc] >0.9: #if the fit is reasonable...
                 # match the new neuron to its last position
-                this_sort[np.where(np.asarray(last_sort)==str(min_loc[0]))[0]] = str(min_loc[1])
+                this_sort[np.where(
+                        np.asarray(last_sort)==str(neurons_first[min_loc[0]]))[0]] =\
+                                                            neurons_second[min_loc[1]]
             sim_mat[:,min_loc[1]]+=-1 # add to the sim mat to denote finished
             sim_mat[min_loc[0],:]+=-1 # same idea
             # finish if all matching is done
