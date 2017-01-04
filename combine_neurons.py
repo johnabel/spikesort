@@ -205,6 +205,7 @@ def combine_neurons(ename, subdirs, stim):
     subdir1 = stim
     neurons_first = np.sort(stim_neurons[subdir].keys())
     neurons_second = np.sort(stim_neurons[subdir1].keys())
+    sim_mat = np.zeros((len(neurons_first), len(neurons_second)))
     # finds which are most similar
     for comparison in itertools.product(neurons_first, neurons_second):
         c0 = comparison[0]; c1 = comparison[1]
