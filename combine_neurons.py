@@ -143,10 +143,13 @@ def combine_neurons(ename, subdirs, stim):
         # finds which are most similar
         sim_mat = np.zeros((len(neurons_first), len(neurons_second)))
         for comparison in itertools.product(neurons_first, neurons_second):
-            c0 = int(comparison[0]); c1 = int(comparison[1])
-            shape1 = ename_neurons[subdir][comparison[0]]
-            shape2 = ename_neurons[subdir1][comparison[1]]
-            sim_mat[c0, c1]= np.corrcoef(shape1, shape2)[0,1]
+            c0 = comparison[0]; c1 = comparison[1]
+            shape1 = ename_neurons[subdir][c0]
+            shape2 = ename_neurons[subdir1][c1]
+            #set up the similarity matrix
+            sim_mat[np.where(neurons_first==c0), 
+                    np.where(neurons_second==c1)]=\
+                                    np.corrcoef(shape1, shape2)[0,1]
         
         # hey if there is nothing in the similarity matrix ignore it since 
         # therefore nothing is connected
@@ -203,12 +206,14 @@ def combine_neurons(ename, subdirs, stim):
     neurons_first = np.sort(stim_neurons[subdir].keys())
     neurons_second = np.sort(stim_neurons[subdir1].keys())
     # finds which are most similar
-    sim_mat = np.zeros((len(neurons_first), len(neurons_second)))
     for comparison in itertools.product(neurons_first, neurons_second):
-        c0 = int(comparison[0]); c1 = int(comparison[1])
-        shape1 = stim_neurons[subdir][comparison[0]]
-        shape2 = stim_neurons[subdir1][comparison[1]]
-        sim_mat[c0, c1]= np.corrcoef(shape1, shape2)[0,1]
+        c0 = comparison[0]; c1 = comparison[1]
+        shape1 = stim_neurons[subdir][c0]
+        shape2 = stim_neurons[subdir1][c1]
+        #set up the similarity matrix
+        sim_mat[np.where(neurons_first==c0), 
+                np.where(neurons_second==c1)]=\
+                                np.corrcoef(shape1, shape2)[0,1]
     
     if sim_mat.shape==(0,0):
         # nothing during the comparison period, nothing shows up during stim
