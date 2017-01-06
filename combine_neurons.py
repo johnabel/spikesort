@@ -288,7 +288,9 @@ def combine_neurons(ename, subdirs, stim):
         match_row = midx+1
         expt_matches = matching[match_row][1:-1]
         #the locations of the time before stimulus, and stimulus
-        stim_matches = matching[match_row][[stim_loc,-1]]
+        #stim_loc -1 (since it's the one before stim) +1 (due to the index col)
+        pre_loc = stim_loc-1+1
+        stim_matches = matching[match_row][[pre_loc,-1]]
         
         # get a counter going
         counter = 0
@@ -327,8 +329,8 @@ def combine_neurons(ename, subdirs, stim):
                                         spikes.mean(0)-spikes.std(0),
                                         color=colors[sidx%5], alpha=0.1)
                     
-                    # if stimulus is tied to this full neuron
-                    if (names.find(stim_matches[0]) >= 0 
+                    # if stimulus is tied to this full neuron AND exists
+                    if (names.find(str(stim_loc-1)) >= 0 
                                 and stim_matches[1]!='-1'): 
                         # true if 
                         names+='s'
