@@ -71,7 +71,7 @@ if __name__=='__main__':
         except: 
             print "Failed for some reason."
             
-    np.savetxt(experiment+'spike_counts.csv',total_counts, delimiter=',')
+    np.savetxt(experiment+'spike_counts.csv',total_counts, delimiter=',', fmt="%s")
             
         
                 
