@@ -234,7 +234,7 @@ if __name__=='__main__':
         
         # choose what the bics threshhold should be for stimulus
         if directory==stim:
-        	bics_selected = 1000
+            bics_selected = 1000
         else:
             bics_selected = 5000
         
