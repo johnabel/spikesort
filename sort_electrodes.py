@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 #trial data
 experiment = 'data/stimulation_included/'
 enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
+stim = 'hello'
 
 
 
@@ -81,7 +82,7 @@ def categorize(inputs):
         result = -1
     return result
 
-def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele, 
+def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele, bics_thresh=5000,
                    savenpy=False, saveplots=False):
     """
     Function for sorting a single electrode completely. Currently only serial.
@@ -102,7 +103,7 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
     ----
     """
     # fit a gmm to remove the noise
-    full_ele.fit_gmm(thresh='bics')
+    full_ele.fit_gmm(thresh='bics', bics_thresh=bics_thresh)
     cluster_count = full_ele.num_clusters
     if cluster_count == 1:
         # there is only noise
@@ -122,9 +123,11 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele,
         
         # do a recursive sorting f the remaining spikes
         pca_tree, gmm_tree, std_tree = full_ele.recursive_fit_gmm(
-                            noise_free_data, noise_free_times, pca_data_noise)
+                            noise_free_data, noise_free_times, pca_data_noise, 
+                            bics_thresh=bics_thresh)
         full_ele.recursive_sort_spikes(noise_free_data, noise_free_times, 
-                              pca_tree, gmm_tree, std_tree, final_method='std')
+                              pca_tree, gmm_tree, std_tree, 
+                              final_method='std')
         neuron_count = full_ele.num_clusters
         
         # use the discovered sorting (trees) to now sort ALL the data
@@ -229,6 +232,11 @@ if __name__=='__main__':
         else: 
             os.mkdir(result_path+'/sorting_plots') 
         
+        # choose what the bics threshhold should be for stimulus
+        if directory==stim:
+        	bics_selected = 1000
+        else:
+            bics_selected = 5000
         
         # section for sorting all spikes.
         timer = Electrode.laptimer()
@@ -245,7 +253,7 @@ if __name__=='__main__':
                 # SORT THE SPIKES
                 spks_sorted, spks_shapes, nc = sort_electrode(
                    ename, experiment+'numpy_database/'+directory+'/',
-                   mcd_labels, 10, full_ele, 
+                   mcd_labels, 10, full_ele, bics_thresh = bics_selected,
                    savenpy=experiment+'numpy_neurons/'+directory+'/',
                    saveplots=experiment+'numpy_neurons/'+directory+'/sorting_plots/')
                    
