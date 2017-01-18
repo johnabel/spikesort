@@ -22,9 +22,9 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/stimulation_included/'
+experiment = '/Volumes/MEA_DATA_2/102016_MEAC/'
 enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
-stim = 'hello'
+stim = '3stim'
 
 
 

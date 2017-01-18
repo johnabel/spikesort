@@ -22,13 +22,13 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/stimulation_included/'
+experiment = '/Volumes/MEA_DATA_2/072016_MEA1/'
 count_path = experiment # put count here
 
 
 
 def count(inputs):
-    path, idx, ename, frac = inputs
+    path, idx, ename = inputs
     d1, t1, s1 = Electrode._load_database_byname(path, idx, 
                                                     ename)
     return len(t1)
@@ -62,7 +62,7 @@ if __name__=='__main__':
                             label in mcd_labels]
             
             for res_inp in resample_inputs:
-                data_counts.append(resample(res_inp))
+                data_counts.append(count(res_inp))
             
         print "Counted "+ename+"."
         try:

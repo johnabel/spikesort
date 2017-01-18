@@ -159,7 +159,7 @@ if rethreshhold is not False:
                     
             for i,filei in enumerate(files):
                 spikes = np.load(database_path+'numpy_database/'+directory+'/'
-                        +str(filei[1][-8:-4]) +'/spikes_'+name+'.npy')
+                        +str(filei[1][-8:-4]) +'/spikes_'+ename+'.npy')
                 if np.max(spikes[:,20]) > max_spike_val:
                     max_spike_val = np.max(spikes[:,20])
                     
@@ -180,16 +180,16 @@ if rethreshhold is not False:
             # load it, apply it, save it
             for i,filei in enumerate(files):
                 spikes = np.load(database_path+'numpy_database/'+directory+'/'
-                        +str(filei[1][-8:-4]) +'/spikes_'+name+'.npy')
+                        +str(filei[1][-8:-4]) +'/spikes_'+ename+'.npy')
                 times = np.load(database_path+'numpy_database/'+directory+'/'
-                        +str(filei[1][-8:-4]) +'/time_'+name+'.npy')
+                        +str(filei[1][-8:-4]) +'/time_'+ename+'.npy')
                 good_locs = np.where(spikes[:,20] < new_max_spike_val)[0]
                 spikes_new = spikes[good_locs,:]
                 times_new = times[good_locs]
                 np.save(database_path+'numpy_database/'+directory+'/'
-                        +str(filei[1][-8:-4]) +'/spikes_'+name+'.npy', spikes_new)
+                        +str(filei[1][-8:-4]) +'/spikes_'+ename+'.npy', spikes_new)
                 np.save(database_path+'numpy_database/'+directory+'/'
-                        +str(filei[1][-8:-4]) +'/time_'+name+'.npy', times_new)
+                        +str(filei[1][-8:-4]) +'/time_'+ename+'.npy', times_new)
         
 else:
     print "No automated rethreshholding."
