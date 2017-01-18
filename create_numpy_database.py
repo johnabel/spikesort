@@ -19,9 +19,9 @@ import os
 import Electrode as ele
 
 # arguments for this file
-mcd_locations = 'data/stimulation_included/'
+mcd_locations = 'data/example/'
 database_path = mcd_locations # put database in same location
-num_cpus = 10 # consumes about 1gb ram/cpu
+num_cpus = 1 # consumes about 1gb ram/cpu
 verbose=True
 rethreshhold = False
 
@@ -61,13 +61,12 @@ def convert(dirfile):
                 # apppend to data, time, count
                 item_info = entity.get_data(item_idx)
                 data1.append(item_info[0].tolist()[0])
-                time1+= [item_info[1]] 
-                count1+= [item_info[0]]    
+                time1+= [item_info[1]]     
             channelName = entity.label[24:] # channel names
             #store data with name in the dictionary
             data[channelName] = np.asarray(data1)
             time[channelName] = np.asarray(time1)
-            count[channelName] = np.asarray(count1)
+            count[channelName] = len(time[channelName])
     # re-aligns the times of the spikes
     new_running_time=0
     for name in data.keys():
@@ -104,12 +103,6 @@ for idx, directory in enumerate(subdirectories):
         enames = np.sort([entity.label[24:] for entity in fd.list_entities()])
         np.save(database_path+'numpy_database/enames.npy', enames)
         
-    # correct for first file with no numbering
-    if files[0][0][-5]=='t':
-        os.rename(mcd_locations+'/mcd/'+directory+'/'+files[0][0], 
-                  mcd_locations+'/mcd/'+files[0][:-4]+'0000.mcd')
-        files[0][0] = files[0][0][:-4]+'0000.mcd'
-        
     # parallelize creation of the database
     with futures.ProcessPoolExecutor(max_workers=num_cpus) as executor:
         result = executor.map(convert, files)
@@ -120,7 +113,7 @@ for idx, directory in enumerate(subdirectories):
         # track the times
         durations.append(r[0])
         # track the total number of spikes for each
-        counts = r[0]
+        counts = r[1]
         for key in counts.keys():
             if key in total_counts:
                 total_counts[key] = total_counts[key]+counts[key]
@@ -144,17 +137,20 @@ for idx, directory in enumerate(subdirectories):
 # resample if counts are a certain size
 if rethreshhold is not False:
     # overflow is where the keys
-    overflow_keys = total_counts.keys()[np.where(total_counts.values() > rethreshhold)[0]]
-    
+    overflow_keys = []
+    for key in total_counts.keys():
+        if total_counts[key] > rethreshhold:
+    	    overflow_keys.append(key)
+    print 'Rethreshholding at 125% for: '
+    print overflow_keys
     for ename in overflow_keys:
         # rethreshhold these
         # first, find the max spike value
-        max_spike_val = 0
+        max_spike_val = -1
         for idx, directory in enumerate(subdirectories):
             # what files are in each part
             files_in_folder = np.sort(os.listdir(mcd_locations+'/mcd/'+directory))
             files = []
-            os.mkdir(mcd_locations+'numpy_database/'+directory)
             for filei in files_in_folder:
                 if filei[0]=='.':
                     pass
@@ -168,14 +164,13 @@ if rethreshhold is not False:
                     max_spike_val = np.max(spikes[:,20])
                     
         # set a new threshhold
-        new_max_spike_val = 1.5*max_spike_val
+        new_max_spike_val = 1.25*max_spike_val
         
         # apply it to every piece of data...
         for idx, directory in enumerate(subdirectories):
             # what files are in each part
             files_in_folder = np.sort(os.listdir(mcd_locations+'/mcd/'+directory))
             files = []
-            os.mkdir(mcd_locations+'numpy_database/'+directory)
             for filei in files_in_folder:
                 if filei[0]=='.':
                     pass
@@ -190,7 +185,7 @@ if rethreshhold is not False:
                         +str(filei[1][-8:-4]) +'/time_'+name+'.npy')
                 good_locs = np.where(spikes[:,20] < new_max_spike_val)[0]
                 spikes_new = spikes[good_locs,:]
-                times_new = times[good_locs,:]
+                times_new = times[good_locs]
                 np.save(database_path+'numpy_database/'+directory+'/'
                         +str(filei[1][-8:-4]) +'/spikes_'+name+'.npy', spikes_new)
                 np.save(database_path+'numpy_database/'+directory+'/'
