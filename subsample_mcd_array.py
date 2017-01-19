@@ -22,9 +22,9 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = '/Volumes/MEA_DATA_2/102016_MEAC/'
+experiment = 'data/example/'
 database_path = experiment # put subsamples in this spot
-fraction_subsample = [0.2, 0.2, 0.2, 1, 0.2, 0.2, 0.2]
+fraction_subsample = [1, 1]
 
 
 
