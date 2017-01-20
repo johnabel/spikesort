@@ -28,7 +28,7 @@ experiment = 'data/example/'
 database_path = experiment # put subsamples in this spot
 result_path = experiment+"numpy_neurons"
 subdirs = np.sort(os.listdir(experiment+'numpy_database'))[:-1]
-stim = None
+stim = None # none if no stimulus file, otherwise set to name of stimulus
 
 # define plots
 def plot_frate(spike_times, window=600):

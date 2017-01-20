@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 #trial data
 experiment = 'data/example/'
 database_path = experiment # put subsamples in this spot
-fraction_subsample = [1, 1]
+fraction_subsample = [0.25, 0.33]
 
 
 
