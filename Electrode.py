@@ -96,7 +96,7 @@ class Electrode(object):
 
             
     def fit_gmm(self, sort_data=None, sort_times=None, pca_param=None, 
-                thresh='bics', covar_type='diag', precalc_std=None, 
+                thresh='bics', covar_type='full', precalc_std=None, 
                 bics_thresh=5000):
         """Method for sorting spikes. Follows general idea in "spike sorting"
         article on scholarpedia. This function collects data, performs PCA,
@@ -112,7 +112,7 @@ class Electrode(object):
             sort_times = np.copy(self.raw_spike_times)
 
             
-        if np.size(sort_data) < 400:
+        if np.size(sort_data) < 1000:
             self.num_clusters = 1 # not enough spikes to try to separate them
             print ("Insufficient spikes to sort: "+str(len(sort_data))
                         +"spikes.")
@@ -181,7 +181,7 @@ class Electrode(object):
             self.bics = bics
     
     def sort_spikes(self, sort_data=None, sort_times=None, pca_param=None,
-                    gmm_param=None, covar_type='diag', method='em', 
+                    gmm_param=None, covar_type='full', method='em', 
                     precalc_std=None):
         """ 
         method : 
@@ -336,7 +336,7 @@ class Electrode(object):
                 wele = Electrode(name='working')
                 wele.load_array_data(data, times)
 
-                wele.fit_gmm(thresh='bics', covar_type='diag')
+                wele.fit_gmm(thresh='bics', covar_type='full')
                 wele.sort_spikes(method='em')
 
 
@@ -398,7 +398,7 @@ class Electrode(object):
                 if iteration==0:
                     covar_type='full'
                 else:
-                    covar_type='diag'    
+                    covar_type='full'    
                 self.sort_spikes(sort_data=sd, sort_times=st, 
                                  pca_param=pca_data, gmm_param=gmm_data, 
                                  method='em', covar_type =covar_type, precalc_std = std_data)
@@ -492,9 +492,9 @@ class Electrode(object):
                 # perform pca
                 # sort the spikes using em
                 if iteration==0:
-                    covar_type='diag'
+                    covar_type='full'
                 else:
-                    covar_type='diag' 
+                    covar_type='full' 
                 self.sort_spikes(sort_data=sd, sort_times=st, 
                                  pca_param=pca_data, gmm_param=gmm_data, 
                                  method='em', covar_type =covar_type, precalc_std = std_data)
@@ -526,7 +526,7 @@ class Electrode(object):
         # reutrn the neurons that exist
         self.sort_spikes(sort_data=noise_free_data, sort_times=noise_free_times, 
                                  pca_param=pca_data, gmm_param=gmm_data, 
-                                 method='std', covar_type ='diag', precalc_std = precalc_std)
+                                 method='std', covar_type ='full', precalc_std = precalc_std)
         self.pred = final_predictor.astype(int)
         self.num_clusters = len(gmm_datas)
         self.neurons = {}
