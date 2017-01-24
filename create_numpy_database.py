@@ -19,7 +19,7 @@ import os
 import Electrode as ele
 
 # arguments for this file
-mcd_locations = 'data/example/'
+mcd_locations = 'data/anu/'
 database_path = mcd_locations # put database in same location
 num_cpus = 1 # consumes about 1gb ram/cpu
 verbose=True
@@ -27,14 +27,14 @@ rethreshhold = False #False is no rethreshhold, number = number of spikes before
 
 
 timer = ele.laptimer() # start timing
-if os.path.isdir(database_path+'/numpy_database'):
+if os.path.isdir(database_path+'numpy_database'):
     print ("Database already exists in "+database_path+
             ". Please select a new location or delete existing database.")
     import sys
     sys.exit()
 else:
-    print "Initializing numpy database in " +database_path+"/numpy_database."
-    os.mkdir(database_path+'/numpy_database')
+    print "Initializing numpy database in " +database_path+"numpy_database."
+    os.mkdir(database_path+'numpy_database')
 
 # load up the files
 print "Reading subdirectories. Please ensure these are in sequential order."

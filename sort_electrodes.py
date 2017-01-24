@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/example/'
+experiment = 'data/anu/'
 enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
 stim = None
 
