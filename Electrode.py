@@ -112,7 +112,7 @@ class Electrode(object):
             sort_times = np.copy(self.raw_spike_times)
 
             
-        if np.size(sort_data) < 1000:
+        if np.size(sort_data) < 400:
             self.num_clusters = 1 # not enough spikes to try to separate them
             print ("Insufficient spikes to sort: "+str(len(sort_data))
                         +"spikes.")

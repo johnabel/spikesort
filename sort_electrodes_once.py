@@ -58,7 +58,7 @@ def categorize(inputs):
         #categorize the spikes using em
         ele1.sort_spikes(pca_param=pca_data_noise, gmm_param=gmm_data_noise, 
                          method='em', precalc_std= noise_std)
-        ele1.remove_noise_cluster(method='mean_profile')
+        #ele1.remove_noise_cluster(method='mean_profile')
         # sort the results
         if ele1.num_clusters > 1:
             noise_free_data = np.vstack(ele1.neurons.values())
