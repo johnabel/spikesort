@@ -684,6 +684,7 @@ class Electrode(object):
                 print str(i)+' has no max/min'
         plt.legend()
         ax.set_title(self.name)
+        ax.set_ylim([-0.0002,0.0002])
         if return_fig is True:
             return fig, np.asarray(means)
 

@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/anu/'
+experiment = 'data/rishabh_selected/' 
+
 database_path = experiment # put subsamples in this spot
 fraction_subsample = [1]
 

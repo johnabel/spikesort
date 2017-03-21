@@ -19,7 +19,7 @@ import os
 import Electrode as ele
 
 # arguments for this file
-mcd_locations = 'data/anu/'
+mcd_locations = 'data/rishabh_selected/'
 database_path = mcd_locations # put database in same location
 num_cpus = 1 # consumes about 1gb ram/cpu
 verbose=True
@@ -160,8 +160,8 @@ if rethreshhold is not False:
             for i,filei in enumerate(files):
                 spikes = np.load(database_path+'numpy_database/'+directory+'/'
                         +str(filei[1][-8:-4]) +'/spikes_'+ename+'.npy')
-                if np.max(spikes[:,20]) > max_spike_val:
-                    max_spike_val = np.max(spikes[:,20])
+                if np.max(spikes[:,16]) > max_spike_val:
+                    max_spike_val = np.max(spikes[:,16])
                     
         # set a new threshhold
         new_max_spike_val = 1.25*max_spike_val
@@ -183,7 +183,7 @@ if rethreshhold is not False:
                         +str(filei[1][-8:-4]) +'/spikes_'+ename+'.npy')
                 times = np.load(database_path+'numpy_database/'+directory+'/'
                         +str(filei[1][-8:-4]) +'/time_'+ename+'.npy')
-                good_locs = np.where(spikes[:,20] < new_max_spike_val)[0]
+                good_locs = np.where(spikes[:,16] < new_max_spike_val)[0]
                 spikes_new = spikes[good_locs,:]
                 times_new = times[good_locs]
                 np.save(database_path+'numpy_database/'+directory+'/'

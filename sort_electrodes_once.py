@@ -7,6 +7,7 @@ Created on Fri May 27 16:48:41 2016
 
 from __future__ import division
 
+import itertools
 import numpy  as np
 import scipy as sp
 from sklearn import decomposition, cluster
@@ -22,7 +23,7 @@ import matplotlib.pyplot as plt
 
 
 #trial data
-experiment = 'data/anu/'
+experiment = 'data/rishabh_selected/'
 enames= np.sort(np.load(experiment+'numpy_database/enames.npy'))
 stim = None
 
@@ -58,7 +59,6 @@ def categorize(inputs):
         #categorize the spikes using em
         ele1.sort_spikes(pca_param=pca_data_noise, gmm_param=gmm_data_noise, 
                          method='em', precalc_std= noise_std)
-        #ele1.remove_noise_cluster(method='mean_profile')
         # sort the results
         if ele1.num_clusters > 1:
             noise_free_data = np.vstack(ele1.neurons.values())
@@ -83,7 +83,7 @@ def categorize(inputs):
     return result
 
 def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele, bics_thresh=5000,
-                   savenpy=False, saveplots=False):
+                   savenpy=False, saveplots=False, recombine_neighbors=False):
     """
     Function for sorting a single electrode completely. Currently only serial.
     
@@ -110,13 +110,13 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele, bics_thresh=
         return [], [], 0
     
     else:
-        neuron_count = cluster_count - 1 # one cluster is always noise
         #deconstruct pca, gmm
         pca_data_noise = full_ele.pca_parameters
         gmm_data_noise = full_ele.gmm_parameters
         precalc_std = full_ele.calc_standard_deviation
         # sort electrode using expectation maximizatn to categorize ALL spikes
         full_ele.sort_spikes(method='em', precalc_std = precalc_std)
+        
         
         # use the discovered sorting
         # input data for sorting
@@ -133,53 +133,139 @@ def sort_electrode(ename, dbpath, mcd_labels, batch_size, full_ele, bics_thresh=
             outputs.append(child_categorize(inputi))
         
         # get the outputs into a reasonable format
-        firing_times = [[] for _ in range(neuron_count)]
-        spike_shapes = [[] for _ in range(neuron_count)]
+        firing_times = [[] for _ in range(cluster_count)]
+        spike_shapes = [[] for _ in range(cluster_count)]
         for idx,output in enumerate(outputs):
             if output==-1: pass # ignore if no output
             else:
-                for neuron_index in range(neuron_count):
-                    firing_times[neuron_index].append(
-                            output[0][neuron_index])
-                    spike_shapes[neuron_index].append(output[1][neuron_index])
-        spike_time_arrays = []
-        spike_shape_arrays = []
-        for i in range(neuron_count):
-            if len(firing_times[i])>0:
-                spike_time_arrays.append(np.hstack(firing_times[i]))
-                spike_shape_arrays.append(np.vstack(spike_shapes[i]))
-            else:
-                spike_time_arrays.append([])
-                                        
-                                        
-        # saving the numpy arrays, and the plots
-        if savenpy is not False:
-            #plots
-            if saveplots is not False:
-                fig2, waveforms = full_ele.plot_mean_profile(return_fig=True)
-                fig2.savefig(saveplots+ename+'_spike_profiles.png')
-                plt.clf()
-                plt.close(fig2)
-                for pc in range(full_ele.num_comp)[1:]:
-                    fig1 = full_ele.plot_clustering(return_fig=True,pc2=pc)
-                    fig1.savefig(saveplots+ename+'_'+str(pc)+'pc_clusters.png')
-                    plt.clf()
-                    plt.close(fig1)
-                    fig3 = full_ele.plot_heatmap(return_fig=True,  pc2=pc)
-                    fig3.savefig(saveplots+ename+'_'+str(pc)+'pc_heatmap.png')
-                    plt.clf()
-                    plt.close(fig3)
+                for cidx in range(cluster_count):
+                    firing_times[cidx].append(output[0][cidx])
+                    spike_shapes[cidx].append(output[1][cidx])
+        
+        
+        # option to combine spikes that have a very similar shape
+        if recombine_neighbors:
+            # set property false
+            converged = False
 
-            # numpy arrays
-            for i in range(neuron_count):
-                np.save(savenpy+ename+'_n'+str(i)+'_profiles.npy',
-                            spike_shape_arrays[i])
-                np.save(savenpy+ename+'_n'+str(i)+'_times.npy',
-                            spike_time_arrays[i])
-                np.savetxt(saveplots+ename+
-                                '_waveform.csv', waveforms, delimiter=',')
-                            
-        return spike_time_arrays, spike_shape_arrays, neuron_count
+            while converged is False:
+                mean_shapes = [np.mean(np.vstack(shape),0) for 
+                                            shape in spike_shapes]
+                neurons_first = np.arange(cluster_count)
+                neurons_second = np.arange(cluster_count)
+                # finds which are most similar
+                sim_mat = np.zeros((len(neurons_first), len(neurons_second)))
+                for comparison in itertools.product(neurons_first, neurons_second):
+                    c0 = comparison[0]; c1 = comparison[1]
+                    shape1 = mean_shapes[c0]
+                    shape2 = mean_shapes[c1]
+                    #set up the similarity matrix
+                    sim_mat[np.where(neurons_first==c0)[0][0], 
+                            np.where(neurons_second==c1)[0][0]]=\
+                                            np.sum(np.abs(shape1-shape2))
+                # ignore diags
+                sim_mat = sim_mat+np.diag([1]*cluster_count)
+                min_loc = np.unravel_index(sim_mat.argmin(), sim_mat.shape)
+                
+                if sim_mat[min_loc]>1E-4: # threshold for spike similarity
+                    converged=True
+                else:
+                    # combine the most similar one, start off the new lists 
+                    # with it
+                    spike_shapes_new = []
+                    firing_times_new = []
+                    combined_times = np.hstack([firing_times[min_loc[0]],
+                                                firing_times[min_loc[1]]]).flatten()
+                    combined_spikes = np.vstack([spike_shapes[min_loc[0]][0],
+                                                spike_shapes[min_loc[1]]][0])
+                    spike_shapes_new.append(combined_spikes)
+                    firing_times_new.append(combined_times)
+                    
+                    # add again the ones that were not combined
+                    non_combined = list(set(neurons_first)-set(min_loc))
+                    for nc_cluster in non_combined:
+                        spike_shapes_new.append(spike_shapes[nc_cluster])
+                        firing_times_new.append(firing_times[nc_cluster])
+                        
+                    cluster_count = len(spike_shapes_new)
+                    spike_shapes = spike_shapes_new
+                    firing_times = firing_times_new
+                    
+                    
+
+        # once again, if only noise exists
+        cluster_count = len(spike_shapes)
+        if cluster_count == 1:
+            # there is only noise
+            return [], [], 0
+        else:
+            # one cluster is noise, identify which
+            neuron_count = cluster_count -1
+            mean_shapes = [np.mean(np.vstack(shape),0) for 
+                                            shape in spike_shapes]
+            profile_absmean = []
+            for i in range(cluster_count):
+                profile_absmean.append(np.abs(mean_shapes[i]).mean())
+            remove_cluster = np.argmin(profile_absmean)
+            
+            
+            # get into finalized format, remove the noise
+            spike_time_arrays = []
+            spike_shape_arrays = []
+            for i in range(cluster_count):
+                # remove noise
+                if i != remove_cluster:
+                    if len(firing_times[i])>0:
+                        spike_time_arrays.append(np.hstack(firing_times[i]))
+                        spike_shape_arrays.append(np.vstack(spike_shapes[i]))
+                    else:
+                        spike_time_arrays.append([])
+            
+            
+            # plotting_electrode is the electrode object used for plots
+            plot_ele = Electrode.Electrode(ename)
+            plot_ele.gmm = 'decoy' # just to fulfill a requirement of the obj
+            plot_ele.neurons = {}
+            for nidx in range(neuron_count):
+                plot_ele.neurons[nidx] = spike_shape_arrays[nidx]
+            
+            
+            # saving the numpy arrays, and the plots
+            if savenpy is not False:
+                #plots
+                if saveplots is not False:
+                    fig2, waveforms = full_ele.plot_mean_profile(
+                                                             return_fig=True)
+                    fig2.savefig(saveplots+ename+'_all_spike_profiles.png')
+                    plt.clf()
+                    plt.close(fig2)
+                    fig4, waveforms = plot_ele.plot_mean_profile(
+                                                             return_fig=True)
+                    fig4.savefig(saveplots+ename+'_combined_noiseless_profiles.png')
+                    plt.clf()
+                    plt.close(fig2)
+                    for pc in range(full_ele.num_comp)[1:]:
+                        fig1 = full_ele.plot_clustering(return_fig=True,pc2=pc)
+                        fig1.savefig(saveplots+ename+'_'+str(pc)+
+                                                'pc_clusters.png')
+                        plt.clf()
+                        plt.close(fig1)
+                        fig3 = full_ele.plot_heatmap(return_fig=True,  pc2=pc)
+                        fig3.savefig(saveplots+ename+'_'+str(pc)+
+                                                'pc_heatmap.png')
+                        plt.clf()
+                        plt.close(fig3)
+    
+                # numpy arrays
+                for i in range(neuron_count):
+                    np.save(savenpy+ename+'_n'+str(i)+'_profiles.npy',
+                                spike_shape_arrays[i])
+                    np.save(savenpy+ename+'_n'+str(i)+'_times.npy',
+                                spike_time_arrays[i])
+                    np.savetxt(saveplots+ename+
+                                    '_waveform.csv', waveforms, delimiter=',')
+                                
+            return spike_time_arrays, spike_shape_arrays, neuron_count
     
 
 
@@ -220,11 +306,8 @@ if __name__=='__main__':
         else: 
             os.mkdir(result_path+'/sorting_plots') 
         
-        # choose what the bics threshhold should be for stimulus
-        if directory==stim:
-            bics_selected = 1000
-        else:
-            bics_selected = 5000
+    
+        bics_selected = 5000
         
         # section for sorting all spikes.
         timer = Electrode.laptimer()
@@ -243,7 +326,8 @@ if __name__=='__main__':
                    ename, experiment+'numpy_database/'+directory+'/',
                    mcd_labels, 10, full_ele, bics_thresh = bics_selected,
                    savenpy=experiment+'numpy_neurons/'+directory+'/',
-                   saveplots=experiment+'numpy_neurons/'+directory+'/sorting_plots/')
+                   saveplots=experiment+'numpy_neurons/'+directory+'/sorting_plots/',
+                   recombine_neighbors=True)
                    
                 print "Sorted for "+str(ename)
             except IOError:
