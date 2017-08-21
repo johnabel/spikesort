@@ -23,7 +23,7 @@ mcd_locations = 'data/example/'
 database_path = mcd_locations # put database in same location
 num_cpus = 1 # consumes about 1gb ram/cpu
 verbose=True
-rethreshhold = False
+rethreshhold = False #False is no rethreshhold, number = number of spikes before rethresh
 
 
 timer = ele.laptimer() # start timing

@@ -603,7 +603,7 @@ class Electrode(object):
         elim_loc = np.where(self.pred<0)
         pred_loc = np.where(self.pred>=0)
         
-        fig = plt.figure(figsize=(3.5,2.42))
+        fig = plt.figure(figsize=(6,4))
         ax = plt.subplot()
         #make_ellipses(self.gmm, ax)
         clust_color = [colors[i%len(colors)] for i in predicted[pred_loc]]
@@ -630,7 +630,7 @@ class Electrode(object):
         elim_loc = np.where(self.pred<0)
         pred_loc = np.where(self.pred>=0)
         
-        fig = plt.figure(figsize=(3.5,2.42))
+        fig = plt.figure(figsize=(6,4))
         ax = fig.add_subplot(111, projection='3d')
         #make_ellipses(self.gmm, ax)
         clust_color = [colors[i%len(colors)] for i in predicted[pred_loc]]
@@ -642,29 +642,12 @@ class Electrode(object):
         ax.set_title(self.name)
         if return_fig is True:
             return fig
-            
-    def plot_through_time(self, times, pc1=0, pc2=1, return_fig=False):
-        """
-        Plots the clustering results for the electrode. pc1 and pc2 are the 
-        principal components which are plotted.
-        """
-        
-        fig = plt.figure(figsize=(3.5,2.42))
-        ax = plt.subplot()
-        #make_ellipses(self.gmm, ax)
-
-        plt.scatter(self.rescale_rtd[:,pc1], self.rescale_rtd[:,pc2], marker='.',
-                    alpha=0.1, c=times)
-        ax.set_xlabel('PC'+str(pc1+1)); ax.set_ylabel('PC'+str(pc2+1));
-        ax.set_title(self.name)
-        if return_fig is True:
-            return fig
     
     def plot_heatmap(self, pc1=0, pc2=1, return_fig=False, return_img=True):
         if hasattr(self, 'gmm')==False:
             self.sort_spikes()   
         
-        fig = plt.figure()
+        fig = plt.figure(figsize=(6,4))
         heatmap, xedges, yedges = np.histogram2d(
                 self.rescale_rtd[:,pc1], self.rescale_rtd[:,pc2], bins=50)
         extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
@@ -685,7 +668,7 @@ class Electrode(object):
         if hasattr(self, 'gmm')==False:
             self.sort_spikes()
         colors = 'bgrcmyw'
-        fig = plt.figure(figsize=(3.5,2.42))
+        fig = plt.figure(figsize=(6,4))
         ax = plt.subplot()
         means = []
         for i, key in enumerate(np.sort(self.neurons.keys())):
