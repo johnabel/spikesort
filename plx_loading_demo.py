@@ -15,6 +15,7 @@ from concurrent import futures
 import os
 
 import Electrode as ele
+from OutsideUtilities.PlexFile import *
 
 # arguments for this file
 plx_locations = 'data/example/'
@@ -25,14 +26,14 @@ rethreshhold = False #False is no rethreshhold, number = number of spikes before
 
 
 timer = ele.laptimer() # start timing
-if os.path.isdir(database_path+'/numpy_database'):
-    print ("Database already exists in "+database_path+
+if os.path.isdir(database_path+'/plx_conversion_database'):
+    print ("Database for conversion already exists in "+database_path+
             ". Please select a new location or delete existing database.")
     import sys
     sys.exit()
 else:
-    print "Initializing numpy database in " +database_path+"/numpy_database."
-    os.mkdir(database_path+'/numpy_database')
+    print "Initializing conversion database in " +database_path+"/numpy_database."
+    os.mkdir(database_path+'/plx_conversion_database')
 
 # load up the files
 print "Reading subdirectories. Please ensure these are in sequential order."
@@ -42,3 +43,28 @@ plx_file = plx_locations+'plx/demo.plx'
 
 example_plx =PlexFile(plx_file)
 
+
+
+
+
+
+self = example_plx
+self.read_data_header()
+# steps
+# take first plx file, create channels in the db based on channels in chan_headers
+# for each plx file
+
+for chan in self.chan_headers:
+    print chan.Name
+
+
+# get the waveforms, channels, and names
+data_out = example_plx.read_wf_data()
+
+
+# save data out to a plex database
+save_to_db(data_out)
+
+
+# reform the database correctly
+reform_numpy_db(plx_locations)

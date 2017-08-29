@@ -150,32 +150,16 @@ class PL_SlowChannelHeader(Structure):
 # The header for the data record used in the datafile (*.plx)
 # This is followed by NumberOfWaveforms*NumberOfWordsInWaveform
 # short integers that represent the waveform(s)
-
-todo: find the type of each point of the waveform
-http://hardcarve.com/wikipic/PlexonDataFileStructureDocumentation.pdf
-# change this to take the spike form too jha
-class PL_DataBlockHeader2(Structure):
-    arr = ctypes.ARRAY(ctypes.c_short, 40)
+class PL_DataBlockHeader(Structure):
     _fields_ = [('Type', ctypes.c_short),                           # Data type; 1=spike, 4=Event, 5=continuous
                 ('UpperByteOf5ByteTimestamp', ctypes.c_ushort),     # Upper 8 bits of the 40 bit timestamp
                 ('TimeStamp', ctypes.c_uint),                       # Lower 32 bits of the 40 bit timestamp
                 ('Channel', ctypes.c_short),                        # Channel number
                 ('Unit', ctypes.c_short),                           # Sorted unit number; 0=unsorted
                 ('NumberOfWaveforms', ctypes.c_short),              # Number of waveforms in the data to folow, usually 0 or 1
-                ('NumberOfWordsInWaveform', ctypes.c_short),        # Number of samples per waveform in the data to follow
-                # 16 bytes
-                ('SV0', ctypes.c_short),
-                ('SV1', ctypes.c_short),
-                ('SV2', ctypes.c_short),
-                ('SV3', ctypes.c_short),
-                ('SV4', ctypes.c_short),
-                ('SV5', ctypes.c_short),
-                ('SV6', ctypes.c_short),
-                ('SV7', ctypes.c_short),
-                ('SV8', ctypes.c_short),
-                ('SV9', ctypes.c_short)]
+                ('NumberOfWordsInWaveform', ctypes.c_short)]
 
-TESTED_PLX_VERSIONS = (105,106, 107) #jha edited
+TESTED_PLX_VERSIONS = (105, 106, 107) #jha edited
 
 class PlexFile(object):
     """
@@ -275,7 +259,7 @@ class PlexFile(object):
                     index += 1
                 waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform *2
                 current_pos += db_size + waveform_size      # skip waveform
-                also not what we want to do
+                #also not what we want to do
 
                 if callback and nbs % 30000 == 0:        # callback to indicate progress every 30000 blocks
                     elapsed_time = time.time() - start_time
@@ -378,7 +362,70 @@ class PlexFile(object):
             if callback:
                 elapsed_time = time.time() - start_time
                 callback(1.0,file_size,file_size,elapsed_time,0.0)
-            return {'channel':ad_channel, 'value':ad_value, 'timestamp':ad_timestamp}
+
+        return {'channel':ad_channel, 'value':ad_value, 'timestamp':ad_timestamp}
+
+    def read_wf_data(self, callback=None):
+        """
+        This has been modified by john abel to also find waveforms.
+        """
+        self.read_data_header()
+
+        wf_data_counts = self.single_wf_counts
+        wf_buffer = (ctypes.c_short * 512)()
+        wf_channel = np.zeros(wf_data_counts,dtype=np.uint16)
+        wf_values = np.zeros([wf_data_counts,40], dtype=np.float32)
+        wf_timestamp = np.zeros(wf_data_counts,dtype=np.float32)
+        wf_frequency = self.file_header.WaveformFreq
+        index = 0
+
+        fileno = self.file.fileno()
+        mfile = mmap.mmap(fileno,0,access=mmap.ACCESS_READ)
+
+        # timing file processing
+        start_time = time.time()
+        previous_speed = 20.0
+        current_speed = previous_speed
+        end_offset = len(mfile)
+        file_size = end_offset/10**6
+        nbs = 0
+
+        current_pos = self.data_offset
+        data_offset = self.data_offset
+        db_size = ctypes.sizeof(PL_DataBlockHeader)
+        try:
+            for iiii in range(wf_data_counts):
+                # pylint: disable=E1101
+                db = PL_DataBlockHeader.from_buffer_copy(mfile,current_pos)
+                waveform_size = db.NumberOfWaveforms * db.NumberOfWordsInWaveform * 2
+                current_pos += db_size
+                if db.Type == PL_SingleWFType:
+                    channel = db.Channel
+                    ctypes.memmove(wf_buffer, mfile[current_pos:current_pos+waveform_size], waveform_size)
+                    wf_timestamp[index] = db.TimeStamp/wf_frequency
+                    wf_channel[index] = channel
+                    for i in xrange(db.NumberOfWordsInWaveform):
+                        wf_values[index,i] = ((wf_buffer[i]*self.file_header.SlowMaxMagnitudeMV)/
+                            (0.5*(2**self.file_header.BitsPerSpikeSample)*self.chan_headers[channel-1].Gain*1000))
+                    index += 1
+                current_pos += waveform_size
+
+                nbs += 1
+                if callback and nbs % 30000 == 0:        # callback to indicate progress every 30000 blocks
+                    elapsed_time = time.time() - start_time
+                    avg_speed = (current_pos - data_offset)/10**6/(elapsed_time)
+                    current_speed = previous_speed * 0.5 + avg_speed * 0.5
+                    previous_speed = current_speed
+                    estimated_time_left = (end_offset - current_pos)/10**6/current_speed
+                    done_size = current_pos/10**6
+                    done_percentage = current_pos / end_offset
+                    callback(done_percentage,done_size,file_size,elapsed_time,estimated_time_left)
+        except ValueError:
+            if callback:
+                elapsed_time = time.time() - start_time
+                callback(1.0,file_size,file_size,elapsed_time,0.0)
+        return {'channel':wf_channel,
+                    'wf_values':wf_values, 'timestamps':wf_timestamp}
 
     def GetADDataArrays(self,callback=None):
         """
