@@ -373,7 +373,7 @@ class PlexFile(object):
 
         wf_data_counts = self.single_wf_counts
         wf_buffer = (ctypes.c_short * 512)()
-        wf_channel = np.zeros(wf_data_counts,dtype=np.uint16)
+        channel_ids = np.zeros(wf_data_counts,dtype=np.uint16)
         wf_values = np.zeros([wf_data_counts,40], dtype=np.float32)
         wf_timestamp = np.zeros(wf_data_counts,dtype=np.float32)
         wf_frequency = self.file_header.WaveformFreq
@@ -403,10 +403,10 @@ class PlexFile(object):
                     channel = db.Channel
                     ctypes.memmove(wf_buffer, mfile[current_pos:current_pos+waveform_size], waveform_size)
                     wf_timestamp[index] = db.TimeStamp/wf_frequency
-                    wf_channel[index] = channel
+                    channel_ids[index] = channel
                     for i in xrange(db.NumberOfWordsInWaveform):
-                        wf_values[index,i] = ((wf_buffer[i]*self.file_header.SlowMaxMagnitudeMV)/
-                            (0.5*(2**self.file_header.BitsPerSpikeSample)*self.chan_headers[channel-1].Gain*1000))
+                        wf_values[index,i] = ((wf_buffer[i]*self.file_header.SpikeMaxMagnitudeMV)/
+                            (0.5*(2**self.file_header.BitsPerSpikeSample)*self.chan_headers[channel-1].Gain**self.file_header.PreAmpGain))
                     index += 1
                 current_pos += waveform_size
 
@@ -424,8 +424,19 @@ class PlexFile(object):
             if callback:
                 elapsed_time = time.time() - start_time
                 callback(1.0,file_size,file_size,elapsed_time,0.0)
-        return {'channel':wf_channel,
-                    'wf_values':wf_values, 'timestamps':wf_timestamp}
+
+        # fix the channels to be their names
+        channames = []
+        for chan in self.chan_headers:
+            channames.append(chan.Name)
+
+        wf_channels = []
+        for chan_id in channel_ids:
+            chan_name = channames[chan_id-1]
+            wf_channels.append(int(chan_name[-2:]))
+
+        return {'channels':wf_channels,
+                    'wf_values':wf_values*0.001, 'timestamps':wf_timestamp}
 
     def GetADDataArrays(self,callback=None):
         """
